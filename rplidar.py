@@ -3,14 +3,14 @@
 Usage example:
 
 >>> from rplidar import RPLidar
->>> lidar = RPLidar('/dev/ttyUSB0')
->>> 
+>>> lidar = RPLidar('COM7')
+>>>
 >>> info = lidar.get_info()
 >>> print(info)
->>> 
+>>>
 >>> health = lidar.get_health()
 >>> print(health)
->>> 
+>>>
 >>> for i, scan in enumerate(lidar.iter_scans()):
 ...  print('%d: Got %d measurments' % (i, len(scan)))
 ...  if i > 10:
@@ -71,7 +71,7 @@ def _b2i(byte):
     return byte if int(sys.version[0]) == 3 else ord(byte)
 
 def _process_scan(raw):
-    print(raw)
+    # print(raw)
     '''Processes input raw data and returns measurment data'''
     new_scan = bool(_b2i(raw[0]) & 0b1)
     inversed_new_scan = bool((_b2i(raw[0]) >> 1) & 0b1)
@@ -95,7 +95,7 @@ class RPLidar(object):
     motor = False  #: Is motor running?
     baudrate = 256000  #: Baudrate for serial port
 
-    def __init__(self, port, baudrate=256000, timeout=1, logger=None):
+    def __init__(self, port, baudrate=1000000, timeout=1, logger=None):
         '''Initilize RPLidar object for communicating with the sensor.
 
         Parameters
@@ -199,7 +199,8 @@ class RPLidar(object):
         data = self._serial_port.read(dsize)
         self.logger.debug('Recieved data: %s', data)
         if len(data) != dsize:
-            raise RPLidarException('Wrong body size')
+            print("data = 지우기")
+            # raise RPLidarException('Wrong body size')
         return data
 
     def get_info(self):
@@ -363,14 +364,14 @@ class RPLidar(object):
             if new_scan:
                 print('new_scan')
                 if len(scan) > min_len:
-                    print(len(scan),min_len)
+                    # print(len(scan),min_len)
                     yield scan
                 scan = []
             if quality > 0 and distance > 0:
                 scan.append((quality, angle, distance))
-            else:
-                print('+++++++++++++++++++++++++++++++++')
-                print(quality,distance)
+            # else:
+            #     print('+++++++++++++++++++++++++++++++++')
+            #     print(quality,distance)
 
 
     def _initScan(self):
