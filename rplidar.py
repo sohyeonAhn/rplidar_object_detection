@@ -362,7 +362,7 @@ class RPLidar(object):
         iterator = self.iter_measurments(max_buf_meas)
         for new_scan, quality, angle, distance in iterator:
             if new_scan:
-                print('new_scan')
+                # print('new_scan')
                 if len(scan) > min_len:
                     # print(len(scan),min_len)
                     yield scan
