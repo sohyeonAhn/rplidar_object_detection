@@ -1,80 +1,107 @@
-#!/usr/bin/env python3
-'''Animates distances and measurement quality'''
-from rplidar import RPLidar
-import matplotlib.pyplot as plt
+# PyQt5와 관련 라이브러리를 임포트합니다.
+import sys
 import numpy as np
-import matplotlib.animation as animation
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout
+from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5 import uic
+import pyqtgraph as pg
+from rplidar import RPLidar
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
-# LiDAR 센서에 연결할 포트 설정
 PORT_NAME = 'COM3'
-# 거리 측정의 최대 범위를 설정
-DMAX = 1000  # 1000mm(1m)로 설정
-# 측정된 반사 강도의 최소값을 설정
-IMIN = 0
-# 측정된 반사 강도의 최대값을 설정
-IMAX = 50
+DMAX = 1000  # 최대 거리 설정 (mm)
 
-def update_line(num, iterator, line):
-    scan = next(iterator)
-    offsets = np.array([(np.radians(meas[1]), meas[2]) for meas in scan])
-    line.set_offsets(offsets)
 
-    colors = np.array(['red' if meas[2] < 300 else 'grey' for meas in scan])
-    line.set_color(colors)
+class LidarThread(QThread):
+    update_signal = pyqtSignal(list)  # 새로운 데이터가 있을 때 신호를 보내기 위한 시그널
 
-    close_points = [meas for meas in scan if meas[2] < 300]
+    def __init__(self, lidar):
+        super().__init__()
+        self.lidar = lidar
 
-    clusters = []
-    current_cluster = []
+    def run(self):
+        for scan in self.lidar.iter_scans():
+            self.update_signal.emit(scan)
 
-    for point in close_points:
-        if not current_cluster:
-            current_cluster.append(point)
-        else:
-            if abs(point[1] - current_cluster[-1][1]) < 15:
+
+class MyWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super(MyWindow, self).__init__(parent)
+        uic.loadUi('./sample2.ui', self)
+
+        self.lidar = RPLidar(PORT_NAME)
+        self.lidar.start_motor()
+
+        self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
+
+        self.slam_figure = Figure()
+        self.slam_canvas = FigureCanvas(self.slam_figure)
+        self.slam_layout = QVBoxLayout(self.slam_view)
+        self.slam_layout.addWidget(self.slam_canvas)
+
+        self.start_lidar_thread()
+
+    def update_line(self, scan):
+        self.slam_figure.clear()
+        polar_ax = self.slam_figure.add_subplot(111, projection='polar')
+        polar_ax.set_theta_zero_location('N')
+        polar_ax.set_theta_direction(-1)
+        polar_ax.set_rmax(DMAX)
+        polar_ax.grid(True)
+
+        offsets = np.array([(np.radians(meas[1]), meas[2]) for meas in scan])
+        colors = np.array(['red' if meas[2] < 300 else 'grey' for meas in scan])
+        polar_ax.scatter(offsets[:, 0], offsets[:, 1], s=5, color=colors, lw=0)
+
+        self.detect_obstacles(scan)
+        self.slam_canvas.draw()
+
+    def detect_obstacles(self, scan):
+        close_points = [meas for meas in scan if meas[2] < 300]
+        clusters = []
+        current_cluster = []
+
+        for point in close_points:
+            if not current_cluster or abs(point[1] - current_cluster[-1][1]) < 15:
                 current_cluster.append(point)
             else:
                 if len(current_cluster) >= 5:
                     clusters.append(current_cluster)
                 current_cluster = [point]
-    if len(current_cluster) >= 5:
-        clusters.append(current_cluster)
+        if len(current_cluster) >= 5:
+            clusters.append(current_cluster)
 
-    for cluster in clusters:
-        avg_angle = np.mean([meas[1] for meas in cluster])
-        avg_distance = np.mean([meas[2] for meas in cluster])
-        direction = determine_direction(avg_angle)
-        print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
+        for cluster in clusters:
+            avg_angle = np.mean([meas[1] for meas in cluster])
+            avg_distance = np.mean([meas[2] for meas in cluster])
+            direction = self.determine_direction(avg_angle)
+            print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
 
-def determine_direction(angle):
-    if 20 <= angle <= 160:
-        return "오른쪽"
-    elif 160 < angle <= 200:
-        return "뒤쪽"
-    elif 200 < angle <= 340:
-        return "왼쪽"
-    else:  # 340 < angle <= 360 or 0 <= angle < 20
-        return "앞쪽"
+    def determine_direction(self, angle):
+        if 20 <= angle <= 160:
+            return "오른쪽"
+        elif 160 < angle <= 200:
+            return "뒤쪽"
+        elif 200 < angle <= 340:
+            return "왼쪽"
+        else:
+            return "앞쪽"
 
-def run():
-    lidar = RPLidar(PORT_NAME, baudrate=1000000)
-    fig = plt.figure()
-    ax = plt.subplot(111, projection='polar')
-    # 0도를 위쪽으로 설정하고, 각도 방향을 시계 방향으로 설정
-    ax.set_theta_zero_location('N')
-    ax.set_theta_direction(-1)
+    def start_lidar_thread(self):
+        self.lidar_thread = LidarThread(self.lidar)
+        self.lidar_thread.update_signal.connect(self.update_line)
+        self.lidar_thread.start()
 
-    line = ax.scatter([0, 0], [0, 0], s=5, lw=0)
-    ax.set_rmax(DMAX)
-    ax.grid(True)
+    def closeEvent(self, event):
+        self.lidar.stop()
+        self.lidar.stop_motor()
+        self.lidar.disconnect()
+        super().closeEvent(event)
 
-    iterator = lidar.iter_scans()
-    ani = animation.FuncAnimation(fig, update_line, fargs=(iterator, line), interval=100)
-    plt.show()
-
-    lidar.stop()
-    lidar.stop_motor()
-    lidar.disconnect()
 
 if __name__ == '__main__':
-    run()
+    app = QApplication(sys.argv)
+    window = MyWindow()
+    window.show()
+    app.exec_()
