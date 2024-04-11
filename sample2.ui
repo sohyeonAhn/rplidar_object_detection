@@ -889,32 +889,6 @@ color:rgb(255, 255, 255)</string>
      <string>DISCONNECT</string>
     </property>
    </widget>
-   <widget class="QLabel" name="BQ_NTC_label">
-    <property name="geometry">
-     <rect>
-      <x>570</x>
-      <y>170</y>
-      <width>64</width>
-      <height>15</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>BQ_NTC_label</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="MCU_NTC_label">
-    <property name="geometry">
-     <rect>
-      <x>570</x>
-      <y>200</y>
-      <width>64</width>
-      <height>15</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>MCU_NTC_label</string>
-    </property>
-   </widget>
    <widget class="PlotWidget" name="slam_view" native="true">
     <property name="geometry">
      <rect>

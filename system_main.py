@@ -14,6 +14,9 @@ from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+PORT_NAME = 'COM3'
+DMAX = 1000  # 최대 거리 설정 (mm)
+
 class Tread1(QThread):
     def __init__(self, parent):
         super().__init__(parent)
@@ -29,19 +32,15 @@ class Tread1(QThread):
             traceback.print_exc()
 
 class LidarThread(QThread):
-    update_signal = pyqtSignal(list, list)  # 새로운 데이터가 있을 때 신호를 보내기 위한 시그널
+    update_signal = pyqtSignal(list)  # 새로운 데이터가 있을 때 신호를 보내기 위한 시그널
 
     def __init__(self, lidar):
-        QThread.__init__(self)
+        super().__init__()
         self.lidar = lidar
 
     def run(self):
         for scan in self.lidar.iter_scans():
-            angles = [meas[1] for meas in scan]
-            distances = [meas[2] for meas in scan]
-            x = [distance * np.sin(np.radians(angle)) for angle, distance in zip(angles, distances)]
-            y = [distance * np.cos(np.radians(angle)) for angle, distance in zip(angles, distances)]
-            self.update_signal.emit(x, y)  # 그래프 업데이트를 위해 신호를 발생시킵니다.
+            self.update_signal.emit(scan)
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -100,8 +99,6 @@ class MyWindow(QMainWindow):
         self.State_Position_0_label = self.findChild(QLabel, "state_position_0_label")
         self.State_Position_1_label = self.findChild(QLabel, "state_position_1_label")
         self.State_Connect_label = self.findChild(QLabel, "state_connect_label")
-        self.BQ_NTC_label = self.findChild(QLabel, "BQ_NTC_label")
-        self.MCU_NTC_label = self.findChild(QLabel, "MCU_NTC_label")
         # ------ ComboBox ---------------------------------------------------
         self.Mode_ComboBox = self.findChild(QComboBox, "mode_comboBox")
         self.Mode_ComboBox.currentIndexChanged.connect(self.Change_mode_combobox)
@@ -109,23 +106,18 @@ class MyWindow(QMainWindow):
         self.GaitType_ComboBox.currentIndexChanged.connect(self.Change_gaittype_comboBox)
 
 
-
+        # ----- Lidar -----------------------------------------------
         # Lidar Setup
-        self.lidar = RPLidar('COM3')  # 적절한 포트로 변경
+        self.lidar = RPLidar(PORT_NAME)
         self.lidar.start_motor()
 
-        # Graph Setup for Lidar
-        self.slam_view = self.findChild(pg.PlotWidget, "slam_view")  # UI에서 slam_view 이름의 PlotWidget 찾기
+        self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
 
-        # Matplotlib Figure와 Canvas 생성
         self.slam_figure = Figure()
         self.slam_canvas = FigureCanvas(self.slam_figure)
-
-        # slam_view PlotWidget에 Matplotlib Canvas를 추가
         self.slam_layout = QVBoxLayout(self.slam_view)
         self.slam_layout.addWidget(self.slam_canvas)
 
-        # Lidar Thread
         self.start_lidar_thread()
 
 
@@ -139,20 +131,11 @@ class MyWindow(QMainWindow):
         self.data_mode = self.myunitree_b1.hstate_mode
         self.data_gaitType = self.myunitree_b1.hstate_gaitType
         self.data_yawspeed = self.myunitree_b1.hstate_yawspeed
-        self.data_BQ_NTC = self.myunitree_b1.hstate_bms_BQ_NTC
-        self.data_MCU_NTC = self.myunitree_b1.hstate_bms_MCU_NTC
 
-        self.plot_data_bodyHeight = self.myunitree_b1.hstate_bodyHeight
-        self.plot_data_footforce = self.myunitree_b1.hstate_footforce
         self.data_position_hstate = self.myunitree_b1.hstate_position
-
-        self.view_data_rpy = self.myunitree_b1.hstate_rpy
-        self.view_data_motorQ = self.myunitree_b1.hstate_motorQ
-        self.view_data_quaternion = self.myunitree_b1.hstate_quaternion
 
         self.update_label()
 
-        # Auto 모드
 
     # ------데이터 입력 이벤트------------
     def vel_0_value_changed(self, value):
@@ -290,34 +273,61 @@ class MyWindow(QMainWindow):
             self.State_Connect_label.setText("Disconnect")
             self.State_Connect_label.setStyleSheet("color: red;")
 
-
     def start_lidar_thread(self):
         self.lidar_thread = LidarThread(self.lidar)
-        self.lidar_thread.update_signal.connect(self.update_lidar_plot)
+        self.lidar_thread.update_signal.connect(self.update_line)
         self.lidar_thread.start()
 
-    def update_lidar_plot(self, x, y):
+    def update_line(self, scan):
         self.slam_figure.clear()
-
-        # 극좌표계 그래프 추가
         polar_ax = self.slam_figure.add_subplot(111, projection='polar')
+        polar_ax.set_theta_zero_location('N')
+        polar_ax.set_theta_direction(-1)
+        polar_ax.set_rmax(DMAX)
+        polar_ax.grid(True)
 
-        # 라이다 데이터에서 각도와 거리 계산
-        angles = np.arctan2(y, x)
-        distances = np.sqrt(np.square(x) + np.square(y))
+        offsets = np.array([(np.radians(meas[1]), meas[2]) for meas in scan])
+        colors = np.array(['red' if meas[2] < 300 else 'grey' for meas in scan])
+        polar_ax.scatter(offsets[:, 0], offsets[:, 1], s=5, color=colors, lw=0)
 
-        # 극좌표계 그래프에 데이터 표시
-        polar_ax.plot(angles, distances, 'o', color='red', markersize=2)
-
-        # Canvas 업데이트
+        self.detect_obstacles(scan)
         self.slam_canvas.draw()
 
+    def detect_obstacles(self, scan):
+        close_points = [meas for meas in scan if meas[2] < 300]
+        clusters = []
+        current_cluster = []
+
+        for point in close_points:
+            if not current_cluster or abs(point[1] - current_cluster[-1][1]) < 15:
+                current_cluster.append(point)
+            else:
+                if len(current_cluster) >= 5:
+                    clusters.append(current_cluster)
+                current_cluster = [point]
+        if len(current_cluster) >= 5:
+            clusters.append(current_cluster)
+
+        for cluster in clusters:
+            avg_angle = np.mean([meas[1] for meas in cluster])
+            avg_distance = np.mean([meas[2] for meas in cluster])
+            direction = self.determine_direction(avg_angle)
+            print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
+
+    def determine_direction(self, angle):
+        if 20 <= angle <= 160:
+            return "오른쪽"
+        elif 160 < angle <= 200:
+            return "뒤쪽"
+        elif 200 < angle <= 340:
+            return "왼쪽"
+        else:
+            return "앞쪽"
+
     def closeEvent(self, event):
-        # LiDAR 관련 명령을 추가
         self.lidar.stop()
         self.lidar.stop_motor()
         self.lidar.disconnect()
-
         super().closeEvent(event)
 
 if __name__ == '__main__':

@@ -1,8 +1,8 @@
 import time
 from ucl.common import byte_print, decode_version, decode_sn, getVoltage, pretty_print_obj, lib_version
 from ucl.highCmd import highCmd
-from ucl.highState_b1 import highState
-from ucl.unitreeConnection import unitreeConnection, HIGH_WIFI_DEFAULTS, HIGH_WIRED_DEFAULTS
+from ucl.highState import highState
+from ucl.unitreeConnection_Go1 import unitreeConnection, HIGH_WIFI_DEFAULTS, HIGH_WIRED_DEFAULTS
 from ucl.enums import MotorModeHigh, GaitType
 from ucl.complex import motorCmd
 
@@ -29,25 +29,10 @@ class myunitree:
         for paket in data:
             self.hstate.parseData(paket)
 
-            # self.highstate_info = f"bodyHeight:\t\t{self.hstate.bodyHeight}\n"
-
-            self.highstate_info = f"{self.hstate.imu.quaternion},{self.hstate.position},{self.hstate.yawSpeed}\n"
-
-            self.hstate_bodyHeight = self.hstate.bodyHeight
             self.hstate_bms_SOC = self.hstate.bms.SOC
-            self.hstate_footforce = self.hstate.footForce
             self.hstate_mode =self.hstate.mode
             self.hstate_gaitType =self.hstate.gaitType
             self.hstate_position = self.hstate.position
-            self.hstate_yawspeed = self.hstate.yawSpeed
-            self.hstate_bms_BQ_NTC = self.hstate.bms.BQ_NTC
-            self.hstate_bms_MCU_NTC = self.hstate.bms.MCU_NTC
-
-            self.hstate_rpy = [self.hstate.imu.rpy[0],self.hstate.imu.rpy[1],self.hstate.imu.rpy[2]]
-            self.hstate_quaternion =[self.hstate.imu.quaternion[0],self.hstate.imu.quaternion[1],self.hstate.imu.quaternion[2],self.hstate.imu.quaternion[3]]
-            self.hstate_motorQ = []
-            for i in range(20):
-                self.hstate_motorQ.append(self.hstate.motorstate[i].q)
 
     def sendCmd(self):
         self.cmd_bytes = self.hcmd.buildCmd(debug=False)
