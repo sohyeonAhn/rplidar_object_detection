@@ -93,7 +93,7 @@ class RPLidar(object):
     port = ''  #: Serial port name, e.g. /dev/ttyUSB0
     timeout = 1  #: Serial port timeout
     motor = False  #: Is motor running?
-    baudrate = 256000  #: Baudrate for serial port
+    baudrate = 1000000  #: Baudrate for serial port
 
     def __init__(self, port, baudrate=1000000, timeout=1, logger=None):
         '''Initilize RPLidar object for communicating with the sensor.
