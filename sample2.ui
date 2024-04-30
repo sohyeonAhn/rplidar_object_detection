@@ -54,7 +54,7 @@ color:rgb(255, 255, 255)</string>
       <x>20</x>
       <y>590</y>
       <width>361</width>
-      <height>321</height>
+      <height>271</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -900,6 +900,16 @@ color:rgb(255, 255, 255)</string>
     </property>
     <property name="styleSheet">
      <string notr="true">background-color: rgb(54, 54, 54);</string>
+    </property>
+   </widget>
+   <widget class="QWidget" name="joystickPlaceholder" native="true">
+    <property name="geometry">
+     <rect>
+      <x>650</x>
+      <y>550</y>
+      <width>341</width>
+      <height>291</height>
+     </rect>
     </property>
    </widget>
   </widget>

@@ -107,18 +107,34 @@ class MyWindow(QMainWindow):
 
 
         # ----- Lidar -----------------------------------------------
-        # Lidar Setup
-        self.lidar = RPLidar(PORT_NAME)
-        self.lidar.start_motor()
+        try:
+            self.lidar = RPLidar(PORT_NAME)
+            self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
 
-        self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
+            self.slam_figure = Figure()
+            self.slam_canvas = FigureCanvas(self.slam_figure)
+            self.slam_layout = QVBoxLayout(self.slam_view)
+            self.slam_layout.addWidget(self.slam_canvas)
 
-        self.slam_figure = Figure()
-        self.slam_canvas = FigureCanvas(self.slam_figure)
-        self.slam_layout = QVBoxLayout(self.slam_view)
-        self.slam_layout.addWidget(self.slam_canvas)
+            if self.check_lidar_connection():
+                self.lidar.start_motor()
+                self.start_lidar_thread()  # Lidar 스레드 시작
+            else:
+                print("Lidar not connected: Thread will not start.")
+        except Exception as e:
+            print(f"Failed to initialize Lidar: {e}")
+            self.lidar = None
 
-        self.start_lidar_thread()
+        # self.lidar.start_motor()
+
+        # self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
+        #
+        # self.slam_figure = Figure()
+        # self.slam_canvas = FigureCanvas(self.slam_figure)
+        # self.slam_layout = QVBoxLayout(self.slam_view)
+        # self.slam_layout.addWidget(self.slam_canvas)
+
+        # self.start_lidar_thread()
 
 
     # ------ SendCmd -------------------------------------
@@ -327,10 +343,20 @@ class MyWindow(QMainWindow):
         else:
             return "앞쪽"
 
+    def check_lidar_connection(self):
+        try:
+            info = self.lidar.get_info()
+            print(f"Lidar Info: {info}")
+            return True
+        except Exception as e:
+            print(f"Failed to connect to Lidar: {e}")
+            return False
+
     def start_lidar_thread(self):
-        self.lidar_thread = LidarThread(self.lidar)
-        self.lidar_thread.update_signal.connect(self.update_line)
-        self.lidar_thread.start()
+        if self.lidar is not None:
+            self.lidar_thread = LidarThread(self.lidar)
+            self.lidar_thread.update_signal.connect(self.update_line)
+            self.lidar_thread.start()
 
     def closeEvent(self, event):
         self.lidar.stop()
