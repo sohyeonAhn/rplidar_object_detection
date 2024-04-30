@@ -9,7 +9,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import pyqtgraph as pg
-from myunitree_robot import myunitree
+from myunitree_robot_test import myunitree
 from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -32,7 +32,7 @@ class Tread1(QThread):
             traceback.print_exc()
 
 class LidarThread(QThread):
-    update_signal = pyqtSignal(list)  # 새로운 데이터가 있을 때 신호를 보내기 위한 시그널
+    update_signal = pyqtSignal(list)
 
     def __init__(self, lidar):
         super().__init__()
@@ -107,18 +107,23 @@ class MyWindow(QMainWindow):
 
 
         # ----- Lidar -----------------------------------------------
-        # Lidar Setup
-        self.lidar = RPLidar(PORT_NAME)
-        self.lidar.start_motor()
+        try:
+            self.lidar = RPLidar(PORT_NAME)
+            self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
 
-        self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
+            self.slam_figure = Figure()
+            self.slam_canvas = FigureCanvas(self.slam_figure)
+            self.slam_layout = QVBoxLayout(self.slam_view)
+            self.slam_layout.addWidget(self.slam_canvas)
 
-        self.slam_figure = Figure()
-        self.slam_canvas = FigureCanvas(self.slam_figure)
-        self.slam_layout = QVBoxLayout(self.slam_view)
-        self.slam_layout.addWidget(self.slam_canvas)
-
-        self.start_lidar_thread()
+            if self.check_lidar_connection():
+                self.lidar.start_motor()
+                self.start_lidar_thread()  # Lidar 스레드 시작
+            else:
+                print("Lidar not connected: Thread will not start.")
+        except Exception as e:
+            print(f"Failed to initialize Lidar: {e}")
+            self.lidar = None
 
 
     # ------ SendCmd -------------------------------------
@@ -135,7 +140,6 @@ class MyWindow(QMainWindow):
         self.data_position_hstate = self.myunitree_b1.hstate_position
 
         self.update_label()
-
 
     # ------데이터 입력 이벤트------------
     def vel_0_value_changed(self, value):
@@ -273,11 +277,6 @@ class MyWindow(QMainWindow):
             self.State_Connect_label.setText("Disconnect")
             self.State_Connect_label.setStyleSheet("color: red;")
 
-    def start_lidar_thread(self):
-        self.lidar_thread = LidarThread(self.lidar)
-        self.lidar_thread.update_signal.connect(self.update_line)
-        self.lidar_thread.start()
-
     def update_line(self, scan):
         self.slam_figure.clear()
         polar_ax = self.slam_figure.add_subplot(111, projection='polar')
@@ -314,6 +313,15 @@ class MyWindow(QMainWindow):
             direction = self.determine_direction(avg_angle)
             print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
 
+            if direction == "앞쪽":
+                self.myunitree_b1.update_obstacle_state("front", True)
+            elif direction == "오른쪽":
+                self.myunitree_b1.update_obstacle_state("right", True)
+            elif direction == "뒤쪽":
+                self.myunitree_b1.update_obstacle_state("back", True)
+            elif direction == "왼쪽":
+                self.myunitree_b1.update_obstacle_state("left", True)
+
     def determine_direction(self, angle):
         if 20 <= angle <= 160:
             return "오른쪽"
@@ -323,6 +331,21 @@ class MyWindow(QMainWindow):
             return "왼쪽"
         else:
             return "앞쪽"
+
+    def check_lidar_connection(self):
+        try:
+            info = self.lidar.get_info()
+            print(f"Lidar Info: {info}")
+            return True
+        except Exception as e:
+            print(f"Failed to connect to Lidar: {e}")
+            return False
+
+    def start_lidar_thread(self):
+        if self.lidar is not None:
+            self.lidar_thread = LidarThread(self.lidar)
+            self.lidar_thread.update_signal.connect(self.update_line)
+            self.lidar_thread.start()
 
     def closeEvent(self, event):
         self.lidar.stop()

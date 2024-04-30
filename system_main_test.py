@@ -125,17 +125,6 @@ class MyWindow(QMainWindow):
             print(f"Failed to initialize Lidar: {e}")
             self.lidar = None
 
-        # self.lidar.start_motor()
-
-        # self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
-        #
-        # self.slam_figure = Figure()
-        # self.slam_canvas = FigureCanvas(self.slam_figure)
-        # self.slam_layout = QVBoxLayout(self.slam_view)
-        # self.slam_layout.addWidget(self.slam_canvas)
-
-        # self.start_lidar_thread()
-
 
     # ------ SendCmd -------------------------------------
     def sendCmd(self):
