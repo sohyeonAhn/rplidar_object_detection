@@ -121,6 +121,11 @@ class MyWindow(QMainWindow):
         # 조이스틱의 positionChanged 시그널 연결
         self.joystick.positionChanged.connect(self.handleJoystickMoved)
 
+        self.joystick_last_position = (0, 0)  # 조이스틱의 마지막 위치 저장
+        self.joystick_timer = QTimer(self)  # 조이스틱 상태를 주기적으로 확인할 타이머
+        self.joystick_timer.timeout.connect(self.send_joystick_command)
+        self.joystick_timer.start(100)  # 100ms 마다 조이스틱 상태 체크
+
 
         # ----- Lidar -----------------------------------------------
         # Lidar Setup
@@ -295,13 +300,15 @@ class MyWindow(QMainWindow):
             self.State_Connect_label.setStyleSheet("color: red;")
 
     def handleJoystickMoved(self, position):
-        x, y = position  # Change this line to unpack the tuple
+        self.joystick_last_position = position  # 조이스틱 위치 업데이트
 
-        scaled_x = x * 0.1  # Scale factor depends on the specific needs
-        scaled_y = y * 0.1
+    def send_joystick_command(self):
+        self.joystick_x, self.joystick_y = self.joystick_last_position
+        # 조이스틱 위치에 따라 로봇에 명령 보내기
+        # self.myunitree_b1.click_mult(self.joystick_y, self.joystick_x)  # 조이스틱 Y, X 순서로 전달
 
-        self.myunitree_b1.click_mult(scaled_y, scaled_x)
-        print(f"Joystick position: ({y}, {x})")
+        # 현재 조이스틱 위치를 출력 (디버깅용)
+        print(f"Joystick position: ({self.joystick_y}, {self.joystick_x}) sent to robot")
 
     def update_line(self, scan):
         self.slam_figure.clear()
@@ -341,6 +348,8 @@ class MyWindow(QMainWindow):
 
             if direction == "앞쪽":
                 self.myunitree_b1.update_obstacle_state("front", True)
+                self.joystick_y = 0
+                print(f"Check! Joypo: ({self.joystick_y}, {self.joystick_x})")
             elif direction == "오른쪽":
                 self.myunitree_b1.update_obstacle_state("right", True)
             elif direction == "뒤쪽":
