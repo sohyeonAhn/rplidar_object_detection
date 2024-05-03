@@ -47,37 +47,20 @@ class myunitree:
 
     #------ 뱡향키 입력 메소드 ---------------------------------
     def Move_Front(self, vel_0):
-        if self.obstacle_directions["front"]:
-            print("앞쪽에 장애물 감지! 멈추기!")
-            # 여기서 멈추거나 방향 변경 구현
-            vel_0 = 0
-        else:
-            self.hcmd.mode = MotorModeHigh.VEL_WALK
-            self.hcmd.velocity = [vel_0, 0]  # 앞으로 이동 진행
+        self.hcmd.mode = MotorModeHigh.VEL_WALK
+        self.hcmd.velocity = [vel_0, 0]  # 앞으로 이동 진행
     def Move_Back(self,vel_0):
         # self.cmdInit()
-        if self.obstacle_directions["back"]:
-            print("뒤쪽에 장애물 감지! 멈추기!")
-            vel_0 = 0
-        else:
-            self.hcmd.mode = MotorModeHigh.VEL_WALK  # mode 2
-            self.hcmd.velocity = [vel_0, 0]  # -1  ~ +1
+        self.hcmd.mode = MotorModeHigh.VEL_WALK  # mode 2
+        self.hcmd.velocity = [vel_0, 0]  # -1  ~ +1
     def Move_Left(self,vel_1):
         # self.cmdInit()
-        if self.obstacle_directions["left"]:
-            print("왼쪽에 장애물 감지! 멈추기!")
-            vel_1 = 0
-        else:
-            self.hcmd.mode = MotorModeHigh.VEL_WALK  # mode 2
-            self.hcmd.velocity = [0, vel_1]  # -1  ~ +1
+        self.hcmd.mode = MotorModeHigh.VEL_WALK  # mode 2
+        self.hcmd.velocity = [0, vel_1]  # -1  ~ +1
     def Move_Right(self,vel_1):
         # self.cmdInit()
-        if self.obstacle_directions["right"]:
-            print("오른쪽에 장애물 감지! 멈추기!")
-            vel_1 = 0
-        else:
-            self.hcmd.mode = MotorModeHigh.VEL_WALK  # mode 2
-            self.hcmd.velocity = [0, vel_1]  # -1  ~ +1
+        self.hcmd.mode = MotorModeHigh.VEL_WALK  # mode 2
+        self.hcmd.velocity = [0, vel_1]  # -1  ~ +1
     def click_Stop(self):
         # self.cmdInit()
         self.hcmd.mode = MotorModeHigh.FORCE_STAND
