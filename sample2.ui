@@ -905,8 +905,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QWidget" name="joystickPlaceholder" native="true">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>550</y>
+      <x>670</x>
+      <y>520</y>
       <width>341</width>
       <height>291</height>
      </rect>
