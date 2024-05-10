@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1123</width>
-    <height>950</height>
+    <height>804</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -51,8 +51,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QFrame" name="frame">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>590</y>
+      <x>570</x>
+      <y>160</y>
       <width>361</width>
       <height>271</height>
      </rect>
@@ -652,13 +652,13 @@ color:rgb(255, 255, 255)</string>
      <enum>Qt::Vertical</enum>
     </property>
    </widget>
-   <widget class="QPushButton" name="N_btn">
+   <widget class="QPushButton" name="Front_btn">
     <property name="geometry">
      <rect>
-      <x>780</x>
-      <y>250</y>
-      <width>70</width>
-      <height>70</height>
+      <x>100</x>
+      <y>610</y>
+      <width>41</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="font">
@@ -682,8 +682,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QPushButton" name="Stop_btn">
     <property name="geometry">
      <rect>
-      <x>780</x>
-      <y>340</y>
+      <x>300</x>
+      <y>630</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -707,13 +707,13 @@ color: rgb(255, 255, 255)</string>
      <string>STOP</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="R_btn">
+   <widget class="QPushButton" name="Turn_R_btn">
     <property name="geometry">
      <rect>
-      <x>880</x>
-      <y>270</y>
-      <width>70</width>
-      <height>40</height>
+      <x>150</x>
+      <y>620</y>
+      <width>41</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="font">
@@ -732,13 +732,13 @@ color:rgb(255, 255, 255);</string>
      <string>R</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="L_btn">
+   <widget class="QPushButton" name="Turn_L_btn">
     <property name="geometry">
      <rect>
-      <x>680</x>
-      <y>270</y>
-      <width>70</width>
-      <height>40</height>
+      <x>50</x>
+      <y>620</y>
+      <width>41</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="font">
@@ -757,13 +757,13 @@ color:rgb(255, 255, 255);</string>
      <string>L</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="E_btn">
+   <widget class="QPushButton" name="Right_btn">
     <property name="geometry">
      <rect>
-      <x>880</x>
-      <y>340</y>
-      <width>70</width>
-      <height>70</height>
+      <x>150</x>
+      <y>660</y>
+      <width>41</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="font">
@@ -781,13 +781,13 @@ color:rgb(255, 255, 255);</string>
      <string>▷</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="S_btn">
+   <widget class="QPushButton" name="Back_btn">
     <property name="geometry">
      <rect>
-      <x>780</x>
-      <y>430</y>
-      <width>70</width>
-      <height>70</height>
+      <x>100</x>
+      <y>660</y>
+      <width>41</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="font">
@@ -805,13 +805,13 @@ color:rgb(255, 255, 255);</string>
      <string>▽</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="W_btn">
+   <widget class="QPushButton" name="Left_btn">
     <property name="geometry">
      <rect>
-      <x>680</x>
-      <y>340</y>
-      <width>70</width>
-      <height>70</height>
+      <x>50</x>
+      <y>660</y>
+      <width>41</width>
+      <height>41</height>
      </rect>
     </property>
     <property name="font">
@@ -902,14 +902,112 @@ color:rgb(255, 255, 255)</string>
      <string notr="true">background-color: rgb(54, 54, 54);</string>
     </property>
    </widget>
-   <widget class="QWidget" name="joystickPlaceholder" native="true">
+   <widget class="QLabel" name="front_btn_label">
     <property name="geometry">
      <rect>
-      <x>670</x>
-      <y>520</y>
-      <width>341</width>
-      <height>291</height>
+      <x>100</x>
+      <y>590</y>
+      <width>41</width>
+      <height>21</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>맑은 고딕</family>
+      <pointsize>10</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(0, 0, 127);</string>
+    </property>
+    <property name="text">
+     <string>W</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="back_btn_label">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>700</y>
+      <width>41</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>맑은 고딕</family>
+      <pointsize>10</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(0, 0, 127);</string>
+    </property>
+    <property name="text">
+     <string>S</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="left_btn_label">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>700</y>
+      <width>41</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>맑은 고딕</family>
+      <pointsize>10</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(0, 0, 127);</string>
+    </property>
+    <property name="text">
+     <string>A</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="right_btn_label">
+    <property name="geometry">
+     <rect>
+      <x>150</x>
+      <y>700</y>
+      <width>41</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>맑은 고딕</family>
+      <pointsize>10</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(0, 0, 127);</string>
+    </property>
+    <property name="text">
+     <string>D</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
   </widget>

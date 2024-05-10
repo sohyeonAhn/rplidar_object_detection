@@ -63,14 +63,14 @@ class myunitree:
         self.hcmd.velocity = [0, vel_1]  # -1  ~ +1
     def click_Stop(self):
         # self.cmdInit()
-        self.hcmd.mode = MotorModeHigh.FORCE_STAND
+        self.hcmd.mode = MotorModeHigh.VEL_WALK
         self.hcmd.velocity = [0,0]  # -1  ~ +1
         self.hcmd.yawSpeed = 0
-    def click_L(self,yawspeed_value):
+    def Turn_Left(self,yawspeed_value):
         # self.cmdInit()
         self.hcmd.mode = MotorModeHigh.VEL_WALK
         self.hcmd.yawSpeed = yawspeed_value
-    def click_R(self,yawspeed_value):
+    def Turn_Right(self,yawspeed_value):
         # self.cmdInit()
         self.hcmd.mode = MotorModeHigh.VEL_WALK
         self.hcmd.yawSpeed = yawspeed_value

@@ -4,6 +4,7 @@ import traceback
 import numpy as np
 import math
 import os
+import keyboard
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from PyQt5.QtCore import *
@@ -47,7 +48,7 @@ class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi(r'./sample2.ui', self)  # Ui 연결
-        self.myunitree_b1 = myunitree()  # myunitree  class 불러와서 명명
+        self.myunitree_go1 = myunitree()  # myunitree  class 불러와서 명명
         # ----- 변수 초기화 ------------------------------------------
         self.velocity_0_Front_value = 0
         self.velocity_0_Back_value = 0
@@ -64,31 +65,22 @@ class MyWindow(QMainWindow):
         self.connect_btn.clicked.connect(self.udp_connect)      # 통신 연결 버튼
         self.disconnect_btn.clicked.connect(self.udp_disconnect)
         # 컨트롤러 버튼
-        self.N_btn.pressed.connect(self.Click_Front_Btn)
-        self.N_btn.released.connect(self.Release_Front_Btn)
-        self.S_btn.pressed.connect(self.Click_Back_Btn)
-        self.S_btn.released.connect(self.Release_Back_Btn)
-        self.W_btn.pressed.connect(self.Click_Left_Btn)
-        self.W_btn.released.connect(self.Release_Left_Btn)
-        self.E_btn.pressed.connect(self.Click_Right_Btn)
-        self.E_btn.released.connect(self.Release_Right_Btn)
-
         self.Stop_btn.clicked.connect(self.Click_Stop_Btn)
 
-        self.L_btn.pressed.connect(self.Click_Turn_L_Btn)
-        self.L_btn.released.connect(self.Release_Turn_L_Btn)
-        self.R_btn.pressed.connect(self.Click_Turn_R_Btn)
-        self.R_btn.released.connect(self.Release_Turn_R_Btn)
+        # 키보드 핫키 설정
+        keyboard.on_press_key("w", self.press_Front_key_callback)
+        keyboard.on_release_key("w", self.release_Front_key_callback)
+        keyboard.on_press_key("s", self.press_Back_key_callback)
+        keyboard.on_release_key("s", self.release_Back_key_callback)
+        keyboard.on_press_key("a", self.press_Left_key_callback)
+        keyboard.on_release_key("a", self.release_Left_key_callback)
+        keyboard.on_press_key("d", self.press_Right_key_callback)
+        keyboard.on_release_key("d", self.release_Right_key_callback)
+        keyboard.on_press_key("q", self.press_TurnL_key_callback)
+        keyboard.on_release_key("q", self.release_TurnL_key_callback)
+        keyboard.on_press_key("e", self.press_TurnR_key_callback)
+        keyboard.on_release_key("e", self.release_TurnR_key_callback)
 
-        # self.auto_start_position_btn.pressed.connect(self.click_auto_start_Position)
-        # self.auto_end_position_btn.pressed.connect(self.click_auto_end_Position)
-
-        self.Front_btn_pressed_state = False
-        self.Back_btn_pressed_state = False
-        self.Left_btn_pressed_state = False
-        self.Right_btn_pressed_state = False
-        self.Turn_L_btn_pressed_state = False
-        self.Turn_R_btn_pressed_state = False
         # ------ 값 입력 ----------------------------------------------------
         self.input_vel_0.valueChanged.connect(self.vel_0_value_changed)
         self.input_vel_1.valueChanged.connect(self.vel_1_value_changed)
@@ -105,26 +97,6 @@ class MyWindow(QMainWindow):
         self.Mode_ComboBox.currentIndexChanged.connect(self.Change_mode_combobox)
         self.GaitType_ComboBox = self.findChild(QComboBox, "gaittype_comboBox")
         self.GaitType_ComboBox.currentIndexChanged.connect(self.Change_gaittype_comboBox)
-
-        # ------ Joystick -----------------------------------------------------
-        # Joystick 위젯 인스턴스 생성
-        self.joystick = Joystick(self)
-
-        # 플레이스홀더 위젯 찾기
-        self.joystickPlaceholder = self.findChild(QWidget, 'joystickPlaceholder')
-
-        # 조이스틱 위젯을 플레이스홀더의 레이아웃에 추가
-        layout = QVBoxLayout()
-        layout.addWidget(self.joystick)
-        self.joystickPlaceholder.setLayout(layout)
-
-        # 조이스틱의 positionChanged 시그널 연결
-        self.joystick.positionChanged.connect(self.handleJoystickMoved)
-
-        self.joystick_last_position = (0, 0)  # 조이스틱의 마지막 위치 저장
-        self.joystick_timer = QTimer(self)  # 조이스틱 상태를 주기적으로 확인할 타이머
-        self.joystick_timer.timeout.connect(self.send_joystick_command)
-        self.joystick_timer.start(100)  # 100ms 마다 조이스틱 상태 체크
 
 
         # ----- Lidar -----------------------------------------------
@@ -150,16 +122,12 @@ class MyWindow(QMainWindow):
 
     # ------ SendCmd -------------------------------------
     def sendCmd(self):
-        self.myunitree_b1.sendCmd()
+        self.myunitree_go1.sendCmd()
 
-        self.highstate_textBrowser.append(self.myunitree_b1.highstate_info)
-
-        self.data_SOC = self.myunitree_b1.hstate_bms_SOC
-        self.data_mode = self.myunitree_b1.hstate_mode
-        self.data_gaitType = self.myunitree_b1.hstate_gaitType
-        self.data_yawspeed = self.myunitree_b1.hstate_yawspeed
-
-        self.data_position_hstate = self.myunitree_b1.hstate_position
+        self.data_SOC = self.myunitree_go1.hstate_bms_SOC
+        self.data_mode = self.myunitree_go1.hstate_mode
+        self.data_gaitType = self.myunitree_go1.hstate_gaitType
+        self.data_position_hstate = self.myunitree_go1.hstate_position
 
         self.update_label()
 
@@ -180,58 +148,52 @@ class MyWindow(QMainWindow):
     def Click_Front_Btn(self):
         self.Front_btn_pressed_state = True
         self.N_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        self.myunitree_b1.Move_Front(self.velocity_0_Front_value)
-    def Click_Back_Btn(self):
-        self.Back_btn_pressed_state = True
-        self.S_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        self.myunitree_b1.Move_Back(self.velocity_0_Back_value)
-    def Click_Left_Btn(self):
-        self.Left_btn_pressed_state = True
-        self.W_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        self.myunitree_b1.Move_Left(self.velocity_1_Left_value)
-    def Click_Right_Btn(self):
-        self.Right_btn_pressed_state = True
-        self.E_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        self.myunitree_b1.Move_Right(self.velocity_1_Right_value)
+        self.myunitree_go1.Move_Front(self.velocity_0_Front_value)
+
     def Click_Stop_Btn(self):
-        self.myunitree_b1.Robot_force_Stop()
+        self.myunitree_go1.Robot_force_Stop()
 
     def Click_Turn_L_Btn(self):
         self.Turn_L_btn_pressed_state = True
         self.L_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
-        self.myunitree_b1.Turn_Left(self.yawspeed_value_L)
-    def Click_Turn_R_Btn(self):
-        self.Turn_R_btn_pressed_state = True
-        self.R_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
-        self.myunitree_b1.Turn_Right(self.yawspeed_value_R)
+        self.myunitree_go1.Turn_Left(self.yawspeed_value_L)
 
-
-    def Release_Front_Btn(self):
-        self.Front_btn_pressed_state = False
-        self.N_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.myunitree_b1.Robot_Stop()
-    def Release_Back_Btn(self):
-        self.Back_btn_pressed_state = False
-        self.S_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.myunitree_b1.Robot_Stop()
-    def Release_Left_Btn(self):
-        self.Left_btn_pressed_state = False
-        self.W_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.myunitree_b1.Robot_Stop()
-    def Release_Right_Btn(self):
-        self.Right_btn_pressed_state = False
-        self.E_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.myunitree_b1.Robot_Stop()
     def Release_Turn_L_Btn(self):
         self.Turn_L_btn_pressed_state = False
         self.L_btn.setStyleSheet("background:rgb(112, 112, 112);"
                                  "color:rgb(255, 255, 255);")
-        self.myunitree_b1.Robot_Stop()
-    def Release_Turn_R_Btn(self):
-        self.Turn_R_btn_pressed_state = False
-        self.R_btn.setStyleSheet("background:rgb(112, 112, 112);"
-                                 "color:rgb(255, 255, 255);")
-        self.myunitree_b1.Robot_Stop()
+        self.myunitree_go1.Robot_Stop()
+
+
+    def press_Front_key_callback(self, event):
+        self.Front_btn.setStyleSheet("background-color: rgb(172, 206, 255);") # 'w' 키를 누르면 버튼 색 변경
+    def press_Back_key_callback(self, event):
+        self.Back_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
+    def press_Left_key_callback(self, event):
+        self.Left_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
+    def press_Right_key_callback(self, event):
+        self.Right_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
+    def press_TurnL_key_callback(self, event):
+        self.Turn_L_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
+
+    def press_TurnR_key_callback(self, event):
+        self.Turn_R_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
+
+
+    # Release BTN-------------------------------------------------------------
+    def release_Front_key_callback(self, event):
+        self.Front_btn.setStyleSheet("background-color: rgb(255, 255, 255);")  # 'w' 키에서 손을 뗄 때 원래 색상으로 복원
+    def release_Back_key_callback(self, event):
+        self.Back_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
+    def release_Left_key_callback(self, event):
+        self.Left_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
+    def release_Right_key_callback(self, event):
+        self.Right_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
+    def release_TurnL_key_callback(self, event):
+        self.Turn_L_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
+    def release_TurnR_key_callback(self, event):
+        self.Turn_R_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
+
 
     # ------ 콤보 박스 메소드 --------------
     def Change_mode_combobox(self, index):
@@ -239,33 +201,33 @@ class MyWindow(QMainWindow):
         print(f"Selected Mode: {selected_item}")
 
         if selected_item == "IDLE (0)":
-            self.myunitree_b1.Change_Mode_to_IDLE()
+            self.myunitree_go1.Change_Mode_to_IDLE()
         elif selected_item == "Force Stand (1)":
-            self.myunitree_b1.Change_Mode_to_Force_Stand()
+            self.myunitree_go1.Change_Mode_to_Force_Stand()
         # elif selected_item == "Vel Walk (2)":
-        # self.myunitree_b1.Change_Mode_to_VEL_WALK()
+        # self.myunitree_go1.Change_Mode_to_VEL_WALK()
         elif selected_item == "Stand Down (5)":
-            self.myunitree_b1.Change_Mode_to_STAND_DOWN()
+            self.myunitree_go1.Change_Mode_to_STAND_DOWN()
         elif selected_item == "Stand Up (6)":
-            self.myunitree_b1.Change_Mode_to_STAND_UP()
+            self.myunitree_go1.Change_Mode_to_STAND_UP()
 
     def Change_gaittype_comboBox(self, index):
         selected_item = self.GaitType_ComboBox.currentText()
         print(f"Selected GaitType: {selected_item}")
 
         if selected_item == "IDLE (0)":
-            self.myunitree_b1.Change_GaitType_to_IDLE()
+            self.myunitree_go1.Change_GaitType_to_IDLE()
         elif selected_item == "Trot (1)":
-            self.myunitree_b1.Change_GaitType_to_Trot()
+            self.myunitree_go1.Change_GaitType_to_Trot()
         elif selected_item == "Climb Stair (2)":
-            self.myunitree_b1.Change_GaitType_to_CLIMB_STAIR()
+            self.myunitree_go1.Change_GaitType_to_CLIMB_STAIR()
         elif selected_item == "Trot Obstacle (3)":
-            self.myunitree_b1.Change_GaitType_to_TROT_OBSTACLE()
+            self.myunitree_go1.Change_GaitType_to_TROT_OBSTACLE()
 
     # ---------------------------------------------------------------------
     def udp_connect(self):
         try:
-            self.myunitree_b1.connect()
+            self.myunitree_go1.connect()
             h1 = Tread1(self)
             h1.start()
             self.plot_timer = QTimer(self)
@@ -276,7 +238,7 @@ class MyWindow(QMainWindow):
             traceback.print_exc()
     def udp_disconnect(self):
         try:
-            self.myunitree_b1.disconnect()
+            self.myunitree_go1.disconnect()
             h1 = Tread1(self)
             h1.start()
         except Exception as e:
@@ -292,23 +254,13 @@ class MyWindow(QMainWindow):
         self.BQ_NTC_label.setText("{:.1f}".format(self.data_BQ_NTC[0])) # 8.0
         self.MCU_NTC_label.setText("{:.1f}".format(self.data_MCU_NTC[0])) # 12.0
 
-        if self.myunitree_b1.connect_flag:
+        if self.myunitree_go1.connect_flag:
             self.State_Connect_label.setText("Connect")
             self.State_Connect_label.setStyleSheet("color: blue;")
         else:
             self.State_Connect_label.setText("Disconnect")
             self.State_Connect_label.setStyleSheet("color: red;")
 
-    def handleJoystickMoved(self, position):
-        self.joystick_last_position = position  # 조이스틱 위치 업데이트
-
-    def send_joystick_command(self):
-        self.joystick_x, self.joystick_y = self.joystick_last_position
-        # 조이스틱 위치에 따라 로봇에 명령 보내기
-        # self.myunitree_b1.click_mult(self.joystick_y, self.joystick_x)  # 조이스틱 Y, X 순서로 전달
-
-        # 현재 조이스틱 위치를 출력 (디버깅용)
-        print(f"Joystick position: ({self.joystick_y}, {self.joystick_x}) sent to robot")
 
     def update_line(self, scan):
         self.slam_figure.clear()
@@ -347,15 +299,15 @@ class MyWindow(QMainWindow):
             print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
 
             if direction == "앞쪽":
-                self.myunitree_b1.update_obstacle_state("front", True)
+                self.myunitree_go1.update_obstacle_state("front", True)
                 self.joystick_y = 0
                 print(f"Check! Joypo: ({self.joystick_y}, {self.joystick_x})")
             elif direction == "오른쪽":
-                self.myunitree_b1.update_obstacle_state("right", True)
+                self.myunitree_go1.update_obstacle_state("right", True)
             elif direction == "뒤쪽":
-                self.myunitree_b1.update_obstacle_state("back", True)
+                self.myunitree_go1.update_obstacle_state("back", True)
             elif direction == "왼쪽":
-                self.myunitree_b1.update_obstacle_state("left", True)
+                self.myunitree_go1.update_obstacle_state("left", True)
 
     def determine_direction(self, angle):
         if 20 <= angle <= 160:
