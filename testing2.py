@@ -177,6 +177,15 @@ class MyWindow(QMainWindow):
         if self.pressed_keys['d']:
             key_input_vel1 = self.velocity_1_Right_value
 
+        if (self.myunitree_go1.obstacle_directions.get("front", False)
+                or self.myunitree_go1.obstacle_directions.get("back", False)):
+            key_input_vel0 = 0
+
+            # 좌우에 장애물이 감지되면 좌/우 이동 속도를 0으로 설정
+        if (self.myunitree_go1.obstacle_directions.get("left", False)
+                or self.myunitree_go1.obstacle_directions.get("right", False)):
+            key_input_vel1 = 0
+
         # 현재 움직임 상태 업데이트
         self.move_velocity_0_value = key_input_vel0
         self.move_velocity_1_value = key_input_vel1
@@ -218,9 +227,6 @@ class MyWindow(QMainWindow):
             self.myunitree_go1.connect()
             h1 = Tread1(self)
             h1.start()
-            self.plot_timer = QTimer(self)
-            self.plot_timer.timeout.connect(self.update_position_state_plot)
-            self.plot_timer.start(200)
         except Exception as e:
             print("udp_connect에서 예외 발생:")
             traceback.print_exc()
@@ -286,15 +292,15 @@ class MyWindow(QMainWindow):
             direction = self.determine_direction(avg_angle)
             print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
 
+            # 방향에 따른 장애물 상태 업데이트
             if direction == "앞쪽":
-                self.myunitree_go1.update_obstacle_state("front", True)
-                self.myunitree_go1.Move_Stop()
+                self.myunitree_go1.obstacle_directions["front"] = True
             elif direction == "오른쪽":
-                self.myunitree_go1.update_obstacle_state("right", True)
+                self.myunitree_go1.obstacle_directions["right"] = True
             elif direction == "뒤쪽":
-                self.myunitree_go1.update_obstacle_state("back", True)
+                self.myunitree_go1.obstacle_directions["back"] = True
             elif direction == "왼쪽":
-                self.myunitree_go1.update_obstacle_state("left", True)
+                self.myunitree_go1.obstacle_directions["left"] = True
 
     def determine_direction(self, angle):
         if 20 <= angle <= 160:
