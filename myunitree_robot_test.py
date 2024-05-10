@@ -34,6 +34,8 @@ class myunitree:
             self.hstate_gaitType =self.hstate.gaitType
             self.hstate_position = self.hstate.position
 
+            self.hstate_velocity = self.hstate.velocity
+
     def sendCmd(self):
         self.cmd_bytes = self.hcmd.buildCmd(debug=False)
         self.conn.send(self.cmd_bytes)
@@ -61,20 +63,19 @@ class myunitree:
         # self.cmdInit()
         self.hcmd.mode = MotorModeHigh.VEL_WALK  # mode 2
         self.hcmd.velocity = [0, vel_1]  # -1  ~ +1
-    def click_Stop(self):
+    def Move_Stop(self):
         # self.cmdInit()
         self.hcmd.mode = MotorModeHigh.VEL_WALK
         self.hcmd.velocity = [0,0]  # -1  ~ +1
+
+    def Turn_RL(self,yawspeed_value):
+        # self.cmdInit()
+        self.hcmd.mode = MotorModeHigh.VEL_WALK
+        self.hcmd.yawSpeed = yawspeed_value
+    def Turn_Stop(self):
+        self.hcmd.mode = MotorModeHigh.VEL_WALK
         self.hcmd.yawSpeed = 0
-    def Turn_Left(self,yawspeed_value):
-        # self.cmdInit()
-        self.hcmd.mode = MotorModeHigh.VEL_WALK
-        self.hcmd.yawSpeed = yawspeed_value
-    def Turn_Right(self,yawspeed_value):
-        # self.cmdInit()
-        self.hcmd.mode = MotorModeHigh.VEL_WALK
-        self.hcmd.yawSpeed = yawspeed_value
-    def click_force_Stop(self):
+    def Robot_force_Stop(self):
         # self.cmdInit()
         self.hcmd.mode = MotorModeHigh.IDLE
         self.hcmd.gaitType = GaitType.IDLE
@@ -83,7 +84,7 @@ class myunitree:
         self.hcmd.euler = [0, 0, 0]
         print("강제 STOP")
 
-    def click_mult(self,vel_0,vel_1):
+    def Move_mult(self,vel_0,vel_1):
         self.cmdInit()
         self.hcmd.mode = MotorModeHigh.VEL_WALK
         self.hcmd.velocity = [vel_0,vel_1]
