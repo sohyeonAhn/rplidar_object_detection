@@ -81,7 +81,7 @@ class MyWindow(QMainWindow):
                                                           "background-color: rgb(172, 206, 255);"))
         keyboard.on_release_key("s", lambda _: self.set_key('s', False, self.Back_btn,
                                                             "background-color: rgb(255, 255, 255);"))
-        keyboard.on_press_key("a",  lambda _: self.set_key('a', True, self.Left_btn,
+        keyboard.on_press_key("a", lambda _: self.set_key('a', True, self.Left_btn,
                                                            "background-color: rgb(172, 206, 255);"))
         keyboard.on_release_key("a", lambda _: self.set_key('a', False, self.Left_btn,
                                                             "background-color: rgb(255, 255, 255);"))
@@ -89,6 +89,11 @@ class MyWindow(QMainWindow):
                                                           "background-color: rgb(172, 206, 255);"))
         keyboard.on_release_key("d", lambda _: self.set_key('d', False, self.Right_btn,
                                                             "background-color: rgb(255, 255, 255);"))
+
+        keyboard.on_press_key("q", self.press_TurnL_key_callback)
+        keyboard.on_release_key("q", self.release_TurnL_key_callback)
+        keyboard.on_press_key("e", self.press_TurnR_key_callback)
+        keyboard.on_release_key("e", self.release_TurnR_key_callback)
 
         # ------ 값 입력 ----------------------------------------------------
         self.input_vel_0.valueChanged.connect(self.vel_0_value_changed)
@@ -158,12 +163,14 @@ class MyWindow(QMainWindow):
 
     # ------버튼 클릭 이벤트--------------
     def Click_Stop_Btn(self):
-        self.myunitree_go1.Robot_force_Stop()
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Robot_force_Stop()
 
     def set_key(self, key, value, button, style):
         self.pressed_keys[key] = value
         button.setStyleSheet(style if value else "background-color: rgb(255, 255, 255);")
-        self.update_movement()
+        if self.myunitree_go1.connect_flag:
+            self.update_movement()
 
     def update_movement(self):
         key_input_vel0 = 0
@@ -191,6 +198,25 @@ class MyWindow(QMainWindow):
         self.move_velocity_1_value = key_input_vel1
         self.myunitree_go1.Move_mult(self.move_velocity_0_value, self.move_velocity_1_value)
 
+    def press_TurnL_key_callback(self, event):
+        self.Turn_L_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_RL(self.yawspeed_value_L)
+
+    def press_TurnR_key_callback(self, event):
+        self.Turn_R_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_RL(self.yawspeed_value_R)
+
+    def release_TurnL_key_callback(self, event):
+        self.Turn_L_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_Stop()
+    def release_TurnR_key_callback(self, event):
+        self.Turn_R_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_Stop()
+
 
     # ------ 콤보 박스 메소드 --------------
     def Change_mode_combobox(self, index):
@@ -201,8 +227,8 @@ class MyWindow(QMainWindow):
             self.myunitree_go1.Change_Mode_to_IDLE()
         elif selected_item == "Force Stand (1)":
             self.myunitree_go1.Change_Mode_to_Force_Stand()
-        # elif selected_item == "Vel Walk (2)":
-        # self.myunitree_go1.Change_Mode_to_VEL_WALK()
+        elif selected_item == "Vel Walk (2)":
+            self.myunitree_go1.Change_Mode_to_VEL_WALK()
         elif selected_item == "Stand Down (5)":
             self.myunitree_go1.Change_Mode_to_STAND_DOWN()
         elif selected_item == "Stand Up (6)":

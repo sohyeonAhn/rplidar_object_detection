@@ -144,48 +144,61 @@ class MyWindow(QMainWindow):
 
     # ------버튼 클릭 이벤트--------------
     def Click_Stop_Btn(self):
-        self.myunitree_go1.Robot_force_Stop()
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Robot_force_Stop()
 
     def press_Front_key_callback(self, event):
         self.Front_btn.setStyleSheet("background-color: rgb(172, 206, 255);") # 'w' 키를 누르면 버튼 색 변경
-        self.myunitree_go1.Move_mult(self.velocity_0_Front_value,0)
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Move_mult(self.velocity_0_Front_value,0)
     def press_Back_key_callback(self, event):
         self.Back_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        self.myunitree_go1.Move_mult(self.velocity_0_Back_value,0)
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Move_mult(self.velocity_0_Back_value,0)
     def press_Left_key_callback(self, event):
         self.Left_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        self.myunitree_go1.Move_mult(0, self.velocity_1_Left_value)
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Move_mult(0, self.velocity_1_Left_value)
     def press_Right_key_callback(self, event):
         self.Right_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        self.myunitree_go1.Move_mult(0, self.velocity_1_Right_value)
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Move_mult(0, self.velocity_1_Right_value)
     def press_TurnL_key_callback(self, event):
         self.Turn_L_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
-        self.myunitree_go1.Turn_RL(self.yawspeed_value_L)
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_RL(self.yawspeed_value_L)
 
     def press_TurnR_key_callback(self, event):
         self.Turn_R_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
-        self.myunitree_go1.Turn_RL(self.yawspeed_value_R)
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_RL(self.yawspeed_value_R)
 
 
     # Release BTN-------------------------------------------------------------
     def release_Front_key_callback(self, event):
         self.Front_btn.setStyleSheet("background-color: rgb(255, 255, 255);")  # 'w' 키에서 손을 뗄 때 원래 색상으로 복원
-        self.myunitree_go1.Move_Stop()
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Move_Stop()
     def release_Back_key_callback(self, event):
         self.Back_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.myunitree_go1.Move_Stop()
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Move_Stop()
     def release_Left_key_callback(self, event):
         self.Left_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.myunitree_go1.Move_Stop()
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Move_Stop()
     def release_Right_key_callback(self, event):
         self.Right_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        self.myunitree_go1.Move_Stop()
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Move_Stop()
     def release_TurnL_key_callback(self, event):
         self.Turn_L_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
-        self.myunitree_go1.Turn_Stop()
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_Stop()
     def release_TurnR_key_callback(self, event):
         self.Turn_R_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
-        self.myunitree_go1.Turn_Stop()
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_Stop()
 
 
     # ------ 콤보 박스 메소드 --------------
