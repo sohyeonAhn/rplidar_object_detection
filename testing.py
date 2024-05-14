@@ -53,8 +53,18 @@ class MyWindow(QMainWindow):
         self.velocity_1_Right_value = 0
         self.yawspeed_value_L = 0
         self.yawspeed_value_R = 0
+        self.move_velocity_0_value = 0
+        self.move_velocity_1_value = 0
+
         self.AutoMode_flag = False
 
+        # 키보드 상태 트래킹
+        self.pressed_keys = {
+            'w': False,
+            's': False,
+            'a': False,
+            'd': False
+        }
 
         # ------ 버튼 -----------------------------------------------------
         self.connect_btn.clicked.connect(self.udp_connect)      # 통신 연결 버튼
@@ -63,14 +73,23 @@ class MyWindow(QMainWindow):
         self.Stop_btn.clicked.connect(self.Click_Stop_Btn)
 
         # 키보드 핫키 설정
-        keyboard.on_press_key("w", self.press_Front_key_callback)
-        keyboard.on_release_key("w", self.release_Front_key_callback)
-        keyboard.on_press_key("s", self.press_Back_key_callback)
-        keyboard.on_release_key("s", self.release_Back_key_callback)
-        keyboard.on_press_key("a", self.press_Left_key_callback)
-        keyboard.on_release_key("a", self.release_Left_key_callback)
-        keyboard.on_press_key("d", self.press_Right_key_callback)
-        keyboard.on_release_key("d", self.release_Right_key_callback)
+        keyboard.on_press_key("w", lambda _: self.set_key('w', True, self.Front_btn,
+                                                          "background-color: rgb(172, 206, 255);"))
+        keyboard.on_release_key("w", lambda _: self.set_key('w', False, self.Front_btn,
+                                                            "background-color: rgb(255, 255, 255);"))
+        keyboard.on_press_key("s", lambda _: self.set_key('s', True, self.Back_btn,
+                                                          "background-color: rgb(172, 206, 255);"))
+        keyboard.on_release_key("s", lambda _: self.set_key('s', False, self.Back_btn,
+                                                            "background-color: rgb(255, 255, 255);"))
+        keyboard.on_press_key("a", lambda _: self.set_key('a', True, self.Left_btn,
+                                                           "background-color: rgb(172, 206, 255);"))
+        keyboard.on_release_key("a", lambda _: self.set_key('a', False, self.Left_btn,
+                                                            "background-color: rgb(255, 255, 255);"))
+        keyboard.on_press_key("d", lambda _: self.set_key('d', True, self.Right_btn,
+                                                          "background-color: rgb(172, 206, 255);"))
+        keyboard.on_release_key("d", lambda _: self.set_key('d', False, self.Right_btn,
+                                                            "background-color: rgb(255, 255, 255);"))
+
         keyboard.on_press_key("q", self.press_TurnL_key_callback)
         keyboard.on_release_key("q", self.release_TurnL_key_callback)
         keyboard.on_press_key("e", self.press_TurnR_key_callback)
@@ -84,8 +103,6 @@ class MyWindow(QMainWindow):
         self.SOC_label = self.findChild(QLabel, "SOC_label")
         self.Mode_label = self.findChild(QLabel, "mode_label")
         self.GaitType_label = self.findChild(QLabel, "gaittype_label")
-        self.State_Position_0_label = self.findChild(QLabel, "state_position_0_label")
-        self.State_Position_1_label = self.findChild(QLabel, "state_position_1_label")
         self.State_Connect_label = self.findChild(QLabel, "state_connect_label")
         # ------ ComboBox ---------------------------------------------------
         self.Mode_ComboBox = self.findChild(QComboBox, "mode_comboBox")
@@ -119,15 +136,15 @@ class MyWindow(QMainWindow):
     def sendCmd(self):
         self.myunitree_go1.sendCmd()
 
-        self.data_SOC = self.myunitree_go1.hstate_bms_SOC
-        self.data_mode = self.myunitree_go1.hstate_mode
-        self.data_gaitType = self.myunitree_go1.hstate_gaitType
-        self.data_position_hstate = self.myunitree_go1.hstate_position
-
-        self.data_velocity = self.myunitree_go1.hstate_velocity
-        print(f"State Velocity: {self.data_velocity}")
-
-        self.update_label()
+        # self.data_SOC = self.myunitree_go1.hstate_bms_SOC
+        # self.data_mode = self.myunitree_go1.hstate_mode
+        # self.data_gaitType = self.myunitree_go1.hstate_gaitType
+        # self.data_position_hstate = self.myunitree_go1.hstate_position
+        #
+        # self.data_velocity = self.myunitree_go1.hstate_velocity
+        # print(f"State Velocity: {self.data_velocity}")
+        #
+        # self.update_label()
 
     # ------데이터 입력 이벤트------------
     def vel_0_value_changed(self, value):
@@ -147,22 +164,29 @@ class MyWindow(QMainWindow):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Robot_force_Stop()
 
-    def press_Front_key_callback(self, event):
-        self.Front_btn.setStyleSheet("background-color: rgb(172, 206, 255);") # 'w' 키를 누르면 버튼 색 변경
+    def set_key(self, key, value, button, style):
+        self.pressed_keys[key] = value
+        button.setStyleSheet(style if value else "background-color: rgb(255, 255, 255);")
         if self.myunitree_go1.connect_flag:
-            self.myunitree_go1.Move_mult(self.velocity_0_Front_value,0)
-    def press_Back_key_callback(self, event):
-        self.Back_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        if self.myunitree_go1.connect_flag:
-            self.myunitree_go1.Move_mult(self.velocity_0_Back_value,0)
-    def press_Left_key_callback(self, event):
-        self.Left_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        if self.myunitree_go1.connect_flag:
-            self.myunitree_go1.Move_mult(0, self.velocity_1_Left_value)
-    def press_Right_key_callback(self, event):
-        self.Right_btn.setStyleSheet("background-color: rgb(172, 206, 255);")
-        if self.myunitree_go1.connect_flag:
-            self.myunitree_go1.Move_mult(0, self.velocity_1_Right_value)
+            self.update_movement()
+
+    def update_movement(self):
+        key_input_vel0 = 0
+        key_input_vel1 = 0
+        if self.pressed_keys['w']:
+            key_input_vel0 = self.velocity_0_Front_value
+        if self.pressed_keys['s']:
+            key_input_vel0 = self.velocity_0_Back_value
+        if self.pressed_keys['a']:
+            key_input_vel1 = self.velocity_1_Left_value
+        if self.pressed_keys['d']:
+            key_input_vel1 = self.velocity_1_Right_value
+
+        # 현재 움직임 상태 업데이트
+        self.move_velocity_0_value = key_input_vel0
+        self.move_velocity_1_value = key_input_vel1
+        self.myunitree_go1.Move_mult(self.move_velocity_0_value, self.move_velocity_1_value)
+
     def press_TurnL_key_callback(self, event):
         self.Turn_L_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
         if self.myunitree_go1.connect_flag:
@@ -173,24 +197,6 @@ class MyWindow(QMainWindow):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_RL(self.yawspeed_value_R)
 
-
-    # Release BTN-------------------------------------------------------------
-    def release_Front_key_callback(self, event):
-        self.Front_btn.setStyleSheet("background-color: rgb(255, 255, 255);")  # 'w' 키에서 손을 뗄 때 원래 색상으로 복원
-        if self.myunitree_go1.connect_flag:
-            self.myunitree_go1.Move_Stop()
-    def release_Back_key_callback(self, event):
-        self.Back_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        if self.myunitree_go1.connect_flag:
-            self.myunitree_go1.Move_Stop()
-    def release_Left_key_callback(self, event):
-        self.Left_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        if self.myunitree_go1.connect_flag:
-            self.myunitree_go1.Move_Stop()
-    def release_Right_key_callback(self, event):
-        self.Right_btn.setStyleSheet("background-color: rgb(255, 255, 255);")
-        if self.myunitree_go1.connect_flag:
-            self.myunitree_go1.Move_Stop()
     def release_TurnL_key_callback(self, event):
         self.Turn_L_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
         if self.myunitree_go1.connect_flag:
@@ -210,8 +216,8 @@ class MyWindow(QMainWindow):
             self.myunitree_go1.Change_Mode_to_IDLE()
         elif selected_item == "Force Stand (1)":
             self.myunitree_go1.Change_Mode_to_Force_Stand()
-        # elif selected_item == "Vel Walk (2)":
-        # self.myunitree_go1.Change_Mode_to_VEL_WALK()
+        elif selected_item == "Vel Walk (2)":
+            self.myunitree_go1.Change_Mode_to_VEL_WALK()
         elif selected_item == "Stand Down (5)":
             self.myunitree_go1.Change_Mode_to_STAND_DOWN()
         elif selected_item == "Stand Up (6)":
@@ -236,9 +242,6 @@ class MyWindow(QMainWindow):
             self.myunitree_go1.connect()
             h1 = Tread1(self)
             h1.start()
-            self.plot_timer = QTimer(self)
-            self.plot_timer.timeout.connect(self.update_position_state_plot)
-            self.plot_timer.start(200)
         except Exception as e:
             print("udp_connect에서 예외 발생:")
             traceback.print_exc()
@@ -255,10 +258,6 @@ class MyWindow(QMainWindow):
         self.SOC_label.setText("{:.1f}".format(self.data_SOC))
         self.Mode_label.setText("{:.1f}".format(self.data_mode))
         self.GaitType_label.setText("{:.1f}".format(self.data_gaitType))
-        self.State_Position_0_label.setText("{:.1f}".format(self.data_position_hstate[0]))
-        self.State_Position_1_label.setText("{:.1f}".format(-self.data_position_hstate[1]))
-        self.BQ_NTC_label.setText("{:.1f}".format(self.data_BQ_NTC[0])) # 8.0
-        self.MCU_NTC_label.setText("{:.1f}".format(self.data_MCU_NTC[0])) # 12.0
 
         if self.myunitree_go1.connect_flag:
             self.State_Connect_label.setText("Connect")
@@ -284,45 +283,46 @@ class MyWindow(QMainWindow):
         self.slam_canvas.draw()
 
     def detect_obstacles(self, scan):
-        close_points = [meas for meas in scan if meas[2] < 300]
-        clusters = []
-        current_cluster = []
+        # 거리 300mm 이하의 측정값 필터링
+        close_points = np.array([(meas[1], meas[2]) for meas in scan if meas[2] < 300])
 
-        for point in close_points:
-            if not current_cluster or abs(point[1] - current_cluster[-1][1]) < 15:
+        if close_points.size == 0:
+            return
+
+        angles = close_points[:, 0]
+        distances = close_points[:, 1]
+
+        # 클러스터링 알고리즘 적용
+        clusters = []
+        current_cluster = [close_points[0]]
+
+        for point in close_points[1:]:
+            if np.abs(point[0] - current_cluster[-1][0]) < 15:
                 current_cluster.append(point)
             else:
                 if len(current_cluster) >= 5:
-                    clusters.append(current_cluster)
+                    clusters.append(np.array(current_cluster))
                 current_cluster = [point]
+
         if len(current_cluster) >= 5:
-            clusters.append(current_cluster)
+            clusters.append(np.array(current_cluster))
 
         for cluster in clusters:
-            avg_angle = np.mean([meas[1] for meas in cluster])
-            avg_distance = np.mean([meas[2] for meas in cluster])
+            avg_angle = np.mean(cluster[:, 0])
+            avg_distance = np.mean(cluster[:, 1])
             direction = self.determine_direction(avg_angle)
             print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
 
-            if direction == "앞쪽":
-                self.myunitree_go1.update_obstacle_state("front", True)
-                self.myunitree_go1.Move_Stop()
-            elif direction == "오른쪽":
-                self.myunitree_go1.update_obstacle_state("right", True)
-            elif direction == "뒤쪽":
-                self.myunitree_go1.update_obstacle_state("back", True)
-            elif direction == "왼쪽":
-                self.myunitree_go1.update_obstacle_state("left", True)
 
     def determine_direction(self, angle):
         if 20 <= angle <= 160:
-            return "오른쪽"
+            return "Right"
         elif 160 < angle <= 200:
-            return "뒤쪽"
+            return "Back"
         elif 200 < angle <= 340:
-            return "왼쪽"
+            return "Left"
         else:
-            return "앞쪽"
+            return "Front"
 
     def check_lidar_connection(self):
         try:

@@ -171,8 +171,10 @@ class MyWindow(QMainWindow):
             self.update_movement()
 
     def update_movement(self):
-        key_input_vel0 = 0
-        key_input_vel1 = 0
+        key_input_vel0 = 0  # 초기 전진/후진 속도
+        key_input_vel1 = 0  # 초기 좌/우 이동 속도
+
+        # 키보드 입력 상태에 따라 속도 설정
         if self.pressed_keys['w']:
             key_input_vel0 = self.velocity_0_Front_value
         if self.pressed_keys['s']:
@@ -183,38 +185,24 @@ class MyWindow(QMainWindow):
             key_input_vel1 = self.velocity_1_Right_value
 
         # 장애물 감지 상태에 따른 속도 조절
-        if self.obstacle_detected['Front']:
-            self.previous_velocities['Front'] = key_input_vel0
-            key_input_vel0 = 0
-        elif self.previous_velocities['Front'] != 0:
-            key_input_vel0 = self.previous_velocities['Front']
-            self.previous_velocities['Front'] = 0
-
-        if self.obstacle_detected['Back']:
-            self.previous_velocities['Back'] = key_input_vel0
-            key_input_vel0 = 0
-        elif self.previous_velocities['Back'] != 0:
-            key_input_vel0 = self.previous_velocities['Back']
-            self.previous_velocities['Back'] = 0
-
-        if self.obstacle_detected['Left']:
-            self.previous_velocities['Left'] = key_input_vel1
-            key_input_vel1 = 0
-        elif self.previous_velocities['Left'] != 0:
-            key_input_vel1 = self.previous_velocities['Left']
-            self.previous_velocities['Left'] = 0
-
-        if self.obstacle_detected['Right']:
-            self.previous_velocities['Right'] = key_input_vel1
-            key_input_vel1 = 0
-        elif self.previous_velocities['Right'] != 0:
-            key_input_vel1 = self.previous_velocities['Right']
-            self.previous_velocities['Right'] = 0
+        key_input_vel0 = self.adjust_velocity_for_obstacle('Front', key_input_vel0)
+        key_input_vel0 = self.adjust_velocity_for_obstacle('Back', key_input_vel0)
+        key_input_vel1 = self.adjust_velocity_for_obstacle('Left', key_input_vel1)
+        key_input_vel1 = self.adjust_velocity_for_obstacle('Right', key_input_vel1)
 
         # 현재 움직임 상태 업데이트
         self.move_velocity_0_value = key_input_vel0
         self.move_velocity_1_value = key_input_vel1
         self.myunitree_go1.Move_mult(self.move_velocity_0_value, self.move_velocity_1_value)
+
+    def adjust_velocity_for_obstacle(self, direction, velocity):
+        if self.obstacle_detected[direction]:
+            self.previous_velocities[direction] = velocity  # 장애물 감지 시 현재 속도 저장
+            return 0  # 속도를 0으로 설정
+        elif self.previous_velocities[direction] != 0:
+            velocity = self.previous_velocities[direction]  # 장애물이 없어지면 이전 속도로 복구
+            self.previous_velocities[direction] = 0  # 이전 속도 초기화
+        return velocity  # 최종 속도 반환
 
     def press_TurnL_key_callback(self, event):
         self.Turn_L_btn.setStyleSheet("background-color: rgb(206, 206, 206);")

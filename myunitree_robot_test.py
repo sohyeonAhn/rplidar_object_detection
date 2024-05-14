@@ -8,7 +8,6 @@ from ucl.complex import motorCmd
 
 class myunitree:
     def __init__(self):
-        self.obstacle_directions = {"front": False, "back": False, "left": False, "right": False}
         self.connect_flag = False
     def connect(self):
         self.conn = unitreeConnection(HIGH_WIFI_DEFAULTS)  # 네트워크 연결
@@ -32,9 +31,8 @@ class myunitree:
             self.hstate_bms_SOC = self.hstate.bms.SOC
             self.hstate_mode =self.hstate.mode
             self.hstate_gaitType =self.hstate.gaitType
-            self.hstate_position = self.hstate.position
 
-            self.hstate_velocity = self.hstate.velocity
+            # self.hstate_position = self.hstate.position
 
     def sendCmd(self):
         self.cmd_bytes = self.hcmd.buildCmd(debug=False)
@@ -42,10 +40,6 @@ class myunitree:
         self.cmdInit()
         # print(self.hcmd.mode)
         # print(self.hcmd.gaitType)
-
-    def update_obstacle_state(self, direction, state):
-        # 이 메소드는 최신 장애물 감지 결과와 함께 호출되어야 합니다.
-        self.obstacle_directions[direction] = state
 
     #------ 뱡향키 입력 메소드 ---------------------------------
     def Move_Front(self, vel_0):
