@@ -27,7 +27,7 @@ class myunitree:
             self.connect_flag = False
 
     def cmdInit(self):
-        time.sleep(0.5)
+        time.sleep(0.02)
         data = self.conn.getData()
         for paket in data:
             self.hstate.parseData(paket)
