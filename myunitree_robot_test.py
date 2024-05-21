@@ -16,6 +16,7 @@ class myunitree:
         self.hcmd = highCmd()
         self.hstate = highState()
         self.connect_flag = True
+        print(f'Connect: {self.connect_flag}')
     def disconnect(self):
         if self.connect_flag:
             self.conn.stopRecv()
@@ -27,10 +28,10 @@ class myunitree:
         data = self.conn.getData()
         for paket in data:
             self.hstate.parseData(paket)
-
-            self.hstate_bms_SOC = self.hstate.bms.SOC
-            self.hstate_mode =self.hstate.mode
-            self.hstate_gaitType =self.hstate.gaitType
+            print(f'SOC:\t\t\t{self.hstate.bms.SOC} %')
+            # self.hstate_bms_SOC = self.hstate.bms.SOC
+            # self.hstate_mode =self.hstate.mode
+            # self.hstate_gaitType =self.hstate.gaitType
 
             # self.hstate_position = self.hstate.position
 

@@ -13,8 +13,9 @@ from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-PORT_NAME = 'COM3'
+PORT_NAME = 'COM4'
 DMAX = 1000  # 최대 거리 설정 (mm)
+
 
 class Tread1(QThread):
     def __init__(self, parent):
@@ -30,6 +31,7 @@ class Tread1(QThread):
             print("Tread1에서 예외 발생:")
             traceback.print_exc()
 
+
 class LidarThread(QThread):
     update_signal = pyqtSignal(list)
 
@@ -40,6 +42,7 @@ class LidarThread(QThread):
     def run(self):
         for scan in self.lidar.iter_scans():
             self.update_signal.emit(scan)
+
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -66,8 +69,21 @@ class MyWindow(QMainWindow):
             'd': False
         }
 
+        # 장애물 회피용 변수 초기화
+        self.obstacle_detected = {
+            'Front': False,
+            'Back': False,
+            'Left': False,
+            'Right': False
+        }
+
+        self.prev_velocity_0_Front_value = 0
+        self.prev_velocity_0_Back_value = 0
+        self.prev_velocity_1_Left_value = 0
+        self.prev_velocity_1_Right_value = 0
+
         # ------ 버튼 -----------------------------------------------------
-        self.connect_btn.clicked.connect(self.udp_connect)      # 통신 연결 버튼
+        self.connect_btn.clicked.connect(self.udp_connect)  # 통신 연결 버튼
         self.disconnect_btn.clicked.connect(self.udp_disconnect)
         # 컨트롤러 버튼
         self.Stop_btn.clicked.connect(self.Click_Stop_Btn)
@@ -82,7 +98,7 @@ class MyWindow(QMainWindow):
         keyboard.on_release_key("s", lambda _: self.set_key('s', False, self.Back_btn,
                                                             "background-color: rgb(255, 255, 255);"))
         keyboard.on_press_key("a", lambda _: self.set_key('a', True, self.Left_btn,
-                                                           "background-color: rgb(172, 206, 255);"))
+                                                          "background-color: rgb(172, 206, 255);"))
         keyboard.on_release_key("a", lambda _: self.set_key('a', False, self.Left_btn,
                                                             "background-color: rgb(255, 255, 255);"))
         keyboard.on_press_key("d", lambda _: self.set_key('d', True, self.Right_btn,
@@ -110,7 +126,6 @@ class MyWindow(QMainWindow):
         self.GaitType_ComboBox = self.findChild(QComboBox, "gaittype_comboBox")
         self.GaitType_ComboBox.currentIndexChanged.connect(self.Change_gaittype_comboBox)
 
-
         # ----- Lidar -----------------------------------------------
         # Lidar Setup
         try:
@@ -131,7 +146,6 @@ class MyWindow(QMainWindow):
             print(f"Failed to initialize Lidar: {e}")
             self.lidar = None
 
-
     # ------ SendCmd -------------------------------------
     def sendCmd(self):
         self.myunitree_go1.sendCmd()
@@ -140,11 +154,9 @@ class MyWindow(QMainWindow):
         # self.data_mode = self.myunitree_go1.hstate_mode
         # self.data_gaitType = self.myunitree_go1.hstate_gaitType
         # self.data_position_hstate = self.myunitree_go1.hstate_position
-        #
-        # self.data_velocity = self.myunitree_go1.hstate_velocity
-        # print(f"State Velocity: {self.data_velocity}")
-        #
-        # self.update_label()
+
+
+        self.update_label()
 
     # ------데이터 입력 이벤트------------
     def vel_0_value_changed(self, value):
@@ -154,10 +166,10 @@ class MyWindow(QMainWindow):
     def vel_1_value_changed(self, value):
         self.velocity_1_Left_value = value
         self.velocity_1_Right_value = -value
+
     def yawspeed_value_changed(self, value):
         self.yawspeed_value_L = value
         self.yawspeed_value_R = -value
-
 
     # ------버튼 클릭 이벤트--------------
     def Click_Stop_Btn(self):
@@ -182,6 +194,16 @@ class MyWindow(QMainWindow):
         if self.pressed_keys['d']:
             key_input_vel1 = self.velocity_1_Right_value
 
+        # 장애물이 감지된 방향의 속도를 0으로 설정
+        if self.obstacle_detected['Front']:
+            key_input_vel0 = 0
+        if self.obstacle_detected['Back']:
+            key_input_vel0 = 0
+        if self.obstacle_detected['Left']:
+            key_input_vel1 = 0
+        if self.obstacle_detected['Right']:
+            key_input_vel1 = 0
+
         # 현재 움직임 상태 업데이트
         self.move_velocity_0_value = key_input_vel0
         self.move_velocity_1_value = key_input_vel1
@@ -201,11 +223,11 @@ class MyWindow(QMainWindow):
         self.Turn_L_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_Stop()
+
     def release_TurnR_key_callback(self, event):
         self.Turn_R_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_Stop()
-
 
     # ------ 콤보 박스 메소드 --------------
     def Change_mode_combobox(self, index):
@@ -245,6 +267,7 @@ class MyWindow(QMainWindow):
         except Exception as e:
             print("udp_connect에서 예외 발생:")
             traceback.print_exc()
+
     def udp_disconnect(self):
         try:
             self.myunitree_go1.disconnect()
@@ -255,9 +278,9 @@ class MyWindow(QMainWindow):
             traceback.print_exc()
 
     def update_label(self):
-        self.SOC_label.setText("{:.1f}".format(self.data_SOC))
-        self.Mode_label.setText("{:.1f}".format(self.data_mode))
-        self.GaitType_label.setText("{:.1f}".format(self.data_gaitType))
+        # self.SOC_label.setText("{:.1f}".format(self.data_SOC))
+        # self.Mode_label.setText("{:.1f}".format(self.data_mode))
+        # self.GaitType_label.setText("{:.1f}".format(self.data_gaitType))
 
         if self.myunitree_go1.connect_flag:
             self.State_Connect_label.setText("Connect")
@@ -265,7 +288,6 @@ class MyWindow(QMainWindow):
         else:
             self.State_Connect_label.setText("Disconnect")
             self.State_Connect_label.setStyleSheet("color: red;")
-
 
     def update_line(self, scan):
         self.slam_figure.clear()
@@ -287,6 +309,12 @@ class MyWindow(QMainWindow):
         close_points = np.array([(meas[1], meas[2]) for meas in scan if meas[2] < 300])
 
         if close_points.size == 0:
+            self.obstacle_detected = {
+                'Front': False,
+                'Back': False,
+                'Left': False,
+                'Right': False
+            }
             return
 
         angles = close_points[:, 0]
@@ -312,7 +340,7 @@ class MyWindow(QMainWindow):
             avg_distance = np.mean(cluster[:, 1])
             direction = self.determine_direction(avg_angle)
             print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
-
+            self.obstacle_detected[direction] = True
 
     def determine_direction(self, angle):
         if 20 <= angle <= 160:
@@ -345,9 +373,9 @@ class MyWindow(QMainWindow):
         self.lidar.disconnect()
         super().closeEvent(event)
 
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MyWindow()
     window.show()
     app.exec_()
-
