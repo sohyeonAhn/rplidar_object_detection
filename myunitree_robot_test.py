@@ -10,13 +10,16 @@ class myunitree:
     def __init__(self):
         self.connect_flag = False
     def connect(self):
-        self.conn = unitreeConnection(HIGH_WIFI_DEFAULTS)  # 네트워크 연결
-        self.conn.startRecv()
+        try:
+            self.conn = unitreeConnection(HIGH_WIFI_DEFAULTS)  # 네트워크 연결
+            self.conn.startRecv()
 
-        self.hcmd = highCmd()
-        self.hstate = highState()
-        self.connect_flag = True
-        print(f'Connect: {self.connect_flag}')
+            self.hcmd = highCmd()
+            self.hstate = highState()
+            self.connect_flag = True
+        except Exception as e:
+            self.connect_flag = False
+            print(f'Connect failed: {e}')
     def disconnect(self):
         if self.connect_flag:
             self.conn.stopRecv()
@@ -24,23 +27,29 @@ class myunitree:
             self.connect_flag = False
 
     def cmdInit(self):
-        time.sleep(0.01)
+        time.sleep(0.5)
         data = self.conn.getData()
         for paket in data:
             self.hstate.parseData(paket)
-            print(f'SOC:\t\t\t{self.hstate.bms.SOC} %')
-            # self.hstate_bms_SOC = self.hstate.bms.SOC
-            # self.hstate_mode =self.hstate.mode
-            # self.hstate_gaitType =self.hstate.gaitType
+            # print(f'SOC:\t\t\t{self.hstate.bms.SOC} %')
+            self.hstate_bms_SOC = self.hstate.bms.SOC
+            self.hstate_mode =self.hstate.mode
+            self.hstate_gaitType =self.hstate.gaitType
 
             # self.hstate_position = self.hstate.position
 
     def sendCmd(self):
-        self.cmd_bytes = self.hcmd.buildCmd(debug=False)
-        self.conn.send(self.cmd_bytes)
-        self.cmdInit()
-        # print(self.hcmd.mode)
-        # print(self.hcmd.gaitType)
+        if not self.connect_flag:
+            print('Cannot send command: Not connected')
+            return
+
+        try:
+            self.cmd_bytes = self.hcmd.buildCmd(debug=False)
+            self.conn.send(self.cmd_bytes)
+            self.cmdInit()
+        except Exception as e:
+            print(f'Failed to send command: {e}')
+            self.connect_flag = False
 
     #------ 뱡향키 입력 메소드 ---------------------------------
     def Move_Front(self, vel_0):

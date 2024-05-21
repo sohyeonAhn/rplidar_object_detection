@@ -13,6 +13,7 @@ from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+
 PORT_NAME = 'COM4'
 DMAX = 1000  # 최대 거리 설정 (mm)
 
@@ -150,11 +151,10 @@ class MyWindow(QMainWindow):
     def sendCmd(self):
         self.myunitree_go1.sendCmd()
 
-        # self.data_SOC = self.myunitree_go1.hstate_bms_SOC
-        # self.data_mode = self.myunitree_go1.hstate_mode
-        # self.data_gaitType = self.myunitree_go1.hstate_gaitType
+        self.data_SOC = self.myunitree_go1.hstate_bms_SOC
+        self.data_mode = self.myunitree_go1.hstate_mode
+        self.data_gaitType = self.myunitree_go1.hstate_gaitType
         # self.data_position_hstate = self.myunitree_go1.hstate_position
-
 
         self.update_label()
 
@@ -196,13 +196,17 @@ class MyWindow(QMainWindow):
 
         # 장애물이 감지된 방향의 속도를 0으로 설정
         if self.obstacle_detected['Front']:
-            key_input_vel0 = 0
+            if key_input_vel0 > 0:
+                key_input_vel0 = 0
         if self.obstacle_detected['Back']:
-            key_input_vel0 = 0
+            if key_input_vel0 < 0:
+                key_input_vel0 = 0
         if self.obstacle_detected['Left']:
-            key_input_vel1 = 0
+            if key_input_vel1 > 0:
+                key_input_vel1 = 0
         if self.obstacle_detected['Right']:
-            key_input_vel1 = 0
+            if key_input_vel1 < 0:
+                key_input_vel1 = 0
 
         # 현재 움직임 상태 업데이트
         self.move_velocity_0_value = key_input_vel0
@@ -278,9 +282,9 @@ class MyWindow(QMainWindow):
             traceback.print_exc()
 
     def update_label(self):
-        # self.SOC_label.setText("{:.1f}".format(self.data_SOC))
-        # self.Mode_label.setText("{:.1f}".format(self.data_mode))
-        # self.GaitType_label.setText("{:.1f}".format(self.data_gaitType))
+        self.SOC_label.setText("{:.1f}".format(self.data_SOC))
+        self.Mode_label.setText("{:.1f}".format(self.data_mode))
+        self.GaitType_label.setText("{:.1f}".format(self.data_gaitType))
 
         if self.myunitree_go1.connect_flag:
             self.State_Connect_label.setText("Connect")
