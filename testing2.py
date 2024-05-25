@@ -14,7 +14,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 
-PORT_NAME = 'COM4'
+PORT_NAME = 'COM3'
 DMAX = 1000  # 최대 거리 설정 (mm)
 
 
@@ -300,15 +300,15 @@ class MyWindow(QMainWindow):
         polar_ax.grid(True)
 
         offsets = np.array([(np.radians(meas[1]), meas[2]) for meas in scan])
-        colors = np.array(['red' if meas[2] < 300 else 'grey' for meas in scan])
+        colors = np.array(['red' if meas[2] < 500 else 'grey' for meas in scan])
         polar_ax.scatter(offsets[:, 0], offsets[:, 1], s=5, color=colors, lw=0)
 
         self.detect_obstacles(scan)
         self.slam_canvas.draw()
 
     def detect_obstacles(self, scan):
-        # 거리 300mm 이하의 측정값 필터링
-        close_points = np.array([(meas[1], meas[2]) for meas in scan if meas[2] < 300])
+        # 거리 500mm 이하의 측정값 필터링
+        close_points = np.array([(meas[1], meas[2]) for meas in scan if meas[2] < 500])
 
         if close_points.size == 0:
             self.obstacle_detected = {
@@ -330,7 +330,7 @@ class MyWindow(QMainWindow):
             if np.abs(point[0] - current_cluster[-1][0]) < 15:
                 current_cluster.append(point)
             else:
-                if len(current_cluster) >= 5:
+                if len(current_cluster) >= 10:
                     clusters.append(np.array(current_cluster))
                 current_cluster = [point]
 
