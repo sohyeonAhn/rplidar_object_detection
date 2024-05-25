@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1123</width>
-    <height>616</height>
+    <width>1536</width>
+    <height>802</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -51,8 +51,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QFrame" name="frame">
     <property name="geometry">
      <rect>
-      <x>570</x>
-      <y>160</y>
+      <x>1020</x>
+      <y>510</y>
       <width>361</width>
       <height>271</height>
      </rect>
@@ -294,7 +294,7 @@ color:rgb(255, 255, 255)</string>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">color: rgb(0, 0, 255);</string>
+         <string notr="true">color: rgb(0, 0, 0);</string>
         </property>
         <property name="text">
          <string>Mode :</string>
@@ -367,7 +367,7 @@ color:rgb(255, 255, 255)</string>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">color: rgb(0, 0, 255);</string>
+         <string notr="true">color: rgb(0, 0, 0);</string>
         </property>
         <property name="text">
          <string>GaitType :</string>
@@ -418,8 +418,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QWidget" name="horizontalLayoutWidget_11">
     <property name="geometry">
      <rect>
-      <x>570</x>
-      <y>80</y>
+      <x>550</x>
+      <y>570</y>
       <width>421</width>
       <height>31</height>
      </rect>
@@ -570,8 +570,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QWidget" name="horizontalLayoutWidget_3">
     <property name="geometry">
      <rect>
-      <x>570</x>
-      <y>120</y>
+      <x>550</x>
+      <y>610</y>
       <width>231</width>
       <height>31</height>
      </rect>
@@ -655,8 +655,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QPushButton" name="Front_btn">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>460</y>
+      <x>90</x>
+      <y>600</y>
       <width>41</width>
       <height>41</height>
      </rect>
@@ -682,8 +682,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QPushButton" name="Stop_btn">
     <property name="geometry">
      <rect>
-      <x>850</x>
-      <y>470</y>
+      <x>240</x>
+      <y>610</y>
       <width>91</width>
       <height>81</height>
      </rect>
@@ -710,8 +710,8 @@ color: rgb(255, 255, 255)</string>
    <widget class="QPushButton" name="Turn_R_btn">
     <property name="geometry">
      <rect>
-      <x>750</x>
-      <y>470</y>
+      <x>140</x>
+      <y>610</y>
       <width>41</width>
       <height>31</height>
      </rect>
@@ -735,8 +735,8 @@ color:rgb(255, 255, 255);</string>
    <widget class="QPushButton" name="Turn_L_btn">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>470</y>
+      <x>40</x>
+      <y>610</y>
       <width>41</width>
       <height>31</height>
      </rect>
@@ -760,8 +760,8 @@ color:rgb(255, 255, 255);</string>
    <widget class="QPushButton" name="Right_btn">
     <property name="geometry">
      <rect>
-      <x>750</x>
-      <y>510</y>
+      <x>140</x>
+      <y>650</y>
       <width>41</width>
       <height>41</height>
      </rect>
@@ -784,8 +784,8 @@ color:rgb(255, 255, 255);</string>
    <widget class="QPushButton" name="Back_btn">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>510</y>
+      <x>90</x>
+      <y>650</y>
       <width>41</width>
       <height>41</height>
      </rect>
@@ -808,8 +808,8 @@ color:rgb(255, 255, 255);</string>
    <widget class="QPushButton" name="Left_btn">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>510</y>
+      <x>40</x>
+      <y>650</y>
       <width>41</width>
       <height>41</height>
      </rect>
@@ -905,8 +905,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QLabel" name="front_btn_label">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>440</y>
+      <x>90</x>
+      <y>580</y>
       <width>41</width>
       <height>21</height>
      </rect>
@@ -932,8 +932,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QLabel" name="back_btn_label">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>550</y>
+      <x>90</x>
+      <y>690</y>
       <width>41</width>
       <height>21</height>
      </rect>
@@ -959,8 +959,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QLabel" name="left_btn_label">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>550</y>
+      <x>40</x>
+      <y>690</y>
       <width>41</width>
       <height>21</height>
      </rect>
@@ -986,8 +986,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QLabel" name="right_btn_label">
     <property name="geometry">
      <rect>
-      <x>750</x>
-      <y>550</y>
+      <x>140</x>
+      <y>690</y>
       <width>41</width>
       <height>21</height>
      </rect>
@@ -1013,8 +1013,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QLabel" name="TurnR_btn_label">
     <property name="geometry">
      <rect>
-      <x>750</x>
-      <y>450</y>
+      <x>140</x>
+      <y>590</y>
       <width>41</width>
       <height>21</height>
      </rect>
@@ -1040,8 +1040,8 @@ color:rgb(255, 255, 255)</string>
    <widget class="QLabel" name="TurnR_btn_label_2">
     <property name="geometry">
      <rect>
-      <x>650</x>
-      <y>450</y>
+      <x>40</x>
+      <y>590</y>
       <width>41</width>
       <height>21</height>
      </rect>
