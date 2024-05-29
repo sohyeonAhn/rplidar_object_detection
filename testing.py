@@ -115,6 +115,7 @@ class MyWindow(QMainWindow):
         # ------ 값 입력 ----------------------------------------------------
         self.input_vel_0.valueChanged.connect(self.vel_0_value_changed)
         self.input_vel_1.valueChanged.connect(self.vel_1_value_changed)
+        self.input_yawspeed.valueChanged.connect(self.yawspeed_value_changed)
 
         # ------ Label -----------------------------------------------------
         self.SOC_label = self.findChild(QLabel, "SOC_label")
