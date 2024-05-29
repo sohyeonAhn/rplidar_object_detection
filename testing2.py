@@ -81,6 +81,7 @@ class MyWindow(QMainWindow):
         self.prev_velocity_1_Left_value = 0
         self.prev_velocity_1_Right_value = 0
 
+
         # ------ 버튼 -----------------------------------------------------
         self.connect_btn.clicked.connect(self.udp_connect)  # 통신 연결 버튼
         self.disconnect_btn.clicked.connect(self.udp_disconnect)
@@ -120,6 +121,8 @@ class MyWindow(QMainWindow):
         self.Mode_label = self.findChild(QLabel, "mode_label")
         self.GaitType_label = self.findChild(QLabel, "gaittype_label")
         self.State_Connect_label = self.findChild(QLabel, "state_connect_label")
+        self.Move_State_label = self.findChild(QLabel, "operation_state_label")
+        self.obstacle_label = self.findChild(QLabel, "obstacle_label")
         # ------ ComboBox ---------------------------------------------------
         self.Mode_ComboBox = self.findChild(QComboBox, "mode_comboBox")
         self.Mode_ComboBox.currentIndexChanged.connect(self.Change_mode_combobox)
@@ -153,6 +156,7 @@ class MyWindow(QMainWindow):
         self.data_SOC = self.myunitree_go1.hstate_bms_SOC
         self.data_mode = self.myunitree_go1.hstate_mode
         self.data_gaitType = self.myunitree_go1.hstate_gaitType
+        self.data_velocity = self.myunitree_go1.hstate_velocity
         # self.data_position_hstate = self.myunitree_go1.hstate_position
 
         self.update_label()
@@ -292,6 +296,13 @@ class MyWindow(QMainWindow):
             self.State_Connect_label.setText("Disconnect")
             self.State_Connect_label.setStyleSheet("color: red;")
 
+        if self.data_velocity[0] == 0.0 & self.data_velocity[1] == 0.0:
+            self.Move_State_label.setText("STOP")
+            self.Move_State_label.setStyleSheet("color: red;")
+        else:
+            self.Move_State_label.setText("Moving..")
+            self.Move_State_label.setStyleSheet("color: blue;")
+
     def update_line(self, scan):
         self.slam_figure.clear()
         polar_ax = self.slam_figure.add_subplot(111, projection='polar')
@@ -318,6 +329,7 @@ class MyWindow(QMainWindow):
                 'Left': False,
                 'Right': False
             }
+            self.obstacle_label.setText("Obstacles: 0")
             return
 
         angles = close_points[:, 0]
@@ -344,6 +356,8 @@ class MyWindow(QMainWindow):
             direction = self.determine_direction(avg_angle)
             print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
             self.obstacle_detected[direction] = True
+
+        self.obstacle_label.setText(f"{len(clusters)}개")
 
     def determine_direction(self, angle):
         if 20 <= angle <= 160:

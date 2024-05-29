@@ -35,6 +35,7 @@ class myunitree:
             self.hstate_bms_SOC = self.hstate.bms.SOC
             self.hstate_mode =self.hstate.mode
             self.hstate_gaitType =self.hstate.gaitType
+            self.hstate_velocity = self.hstate.velocity
 
             # self.hstate_position = self.hstate.position
 
