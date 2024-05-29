@@ -296,7 +296,8 @@ class MyWindow(QMainWindow):
             self.State_Connect_label.setText("Disconnect")
             self.State_Connect_label.setStyleSheet("color: red;")
 
-        if self.data_velocity[0] == 0.0 & self.data_velocity[1] == 0.0:
+        if (abs(self.data_velocity[0]) < 0.05
+                and abs(self.data_velocity[1]) < 0.05):
             self.Move_State_label.setText("STOP")
             self.Move_State_label.setStyleSheet("color: red;")
         else:

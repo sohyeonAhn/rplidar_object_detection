@@ -5,6 +5,7 @@ from ucl.highState import highState
 from ucl.unitreeConnection_Go1 import unitreeConnection, HIGH_WIFI_DEFAULTS, HIGH_WIRED_DEFAULTS
 from ucl.enums import MotorModeHigh, GaitType
 from ucl.complex import motorCmd
+from ucl.complex import led
 
 class myunitree:
     def __init__(self):
@@ -149,6 +150,3 @@ class myunitree:
     def click_GaitTypeCombo_TROT_OBSTACLE(self):
         self.cmdInit()
         self.hcmd.gaitType = GaitType.TROT_OBSTACLE  # GaitType 3
-
-    def LED_OON(self):
-        self.hcmd.led = [1,1,1]
