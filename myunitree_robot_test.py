@@ -149,3 +149,6 @@ class myunitree:
     def click_GaitTypeCombo_TROT_OBSTACLE(self):
         self.cmdInit()
         self.hcmd.gaitType = GaitType.TROT_OBSTACLE  # GaitType 3
+
+    def LED_OON(self):
+        self.hcmd.led = [1,1,1]
