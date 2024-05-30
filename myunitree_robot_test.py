@@ -97,14 +97,6 @@ class myunitree:
 
 
     # -------------------------------------------------------
-    def click_Up(self):
-        # self.cmdInit()
-        self.hcmd.mode = MotorModeHigh.STAND_UP
-        print("Click Up")
-    def click_Down(self):
-        # self.cmdInit()
-        self.hcmd.mode = MotorModeHigh.STAND_DOWN
-        print("Click Down")
 
     def click_Euler(self,vel_row,vel_pitch,vel_yaw): #self,vel_row,vel_pitch,vel_yaw
         self.cmdInit()
@@ -121,32 +113,51 @@ class myunitree:
         self.hcmd.bodyHeight = vel_bodyHeight # default: 0.28m
 
     # ------ Mode ComboBox 입력 메소드 --------------------
-    def click_ModeCombo_IDLE(self):
+    def Change_Mode_to_IDLE(self):
         self.cmdInit()
         self.hcmd.mode = MotorModeHigh.IDLE # mode  0
-    def click_ModeCombo_Force_Stand(self):
+    def Change_Mode_to_Force_Stand(self):
         self.cmdInit()
         self.hcmd.mode = MotorModeHigh.FORCE_STAND # mode  1
-    def click_ModeCombo_VEL_WALK(self):
+    def Change_Mode_to_VEL_WALK(self):
         self.cmdInit()
         self.hcmd.mode = MotorModeHigh.VEL_WALK # mode 2
-    def click_ModeCombo_STAND_DOWN(self):
+    def Change_Mode_to_STAND_DOWN(self):
         self.cmdInit()
         self.hcmd.mode = MotorModeHigh.STAND_DOWN # mode 5
-    def click_ModeCombo_STAND_UP(self):
+    def Change_Mode_to_STAND_UP(self):
         self.cmdInit()
         self.hcmd.mode = MotorModeHigh.STAND_UP # mode 6
+    def Change_Mode_to_Damping(self):
+        self.cmdInit()
+        self.hcmd.mode = MotorModeHigh.DAMPING # mode 7
+    def Change_Mode_to_Recovery_Stand(self):
+        self.cmdInit()
+        self.hcmd.mode = MotorModeHigh.RECOVERY # mode 8
+    def Change_Mode_to_JumpYaw(self):
+        self.cmdInit()
+        self.hcmd.mode = MotorModeHigh.JUMPYAW # mode 10
+    def Change_Mode_to_Straighthand(self):
+        self.cmdInit()
+        self.hcmd.mode = MotorModeHigh.STRAIGHTHAND # mode 11
+    def Change_Mode_to_Dance1(self):
+        self.cmdInit()
+        self.hcmd.mode = MotorModeHigh.DANCE1
+    def Change_Mode_to_Dance2(self):
+        self.cmdInit()
+        self.hcmd.mode = MotorModeHigh.DANCE2
+
 
     #------ GaitType ComboBox 입력 메소드 --------------------
-    def click_GaitTypeCombo_IDLE(self):
+    def Change_GaitType_to_IDLE(self):
         self.cmdInit()
         self.hcmd.gaitType = GaitType.IDLE  # GaitType 0
-    def click_GaitTypeCombo_Trot(self):
+    def Change_GaitType_to_Trot(self):
         self.cmdInit()
         self.hcmd.gaitType = GaitType.TROT  # GaitType 1
-    def click_GaitTypeCombo_CLIMB_STAIR(self):
+    def Change_GaitType_to_Trot_Running(self):
         self.cmdInit()
-        self.hcmd.gaitType = GaitType.CLIMB_STAIR  # GaitType 2
-    def click_GaitTypeCombo_TROT_OBSTACLE(self):
+        self.hcmd.gaitType = GaitType.TROT_OBSTACLE  # GaitType 2
+    def Change_GaitType_to_CLIMB_STAIR(self):
         self.cmdInit()
-        self.hcmd.gaitType = GaitType.TROT_OBSTACLE  # GaitType 3
+        self.hcmd.gaitType = GaitType.CLIMB_STAIR  # GaitType 3

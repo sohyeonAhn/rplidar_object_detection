@@ -87,6 +87,11 @@ class MyWindow(QMainWindow):
         self.disconnect_btn.clicked.connect(self.udp_disconnect)
         # 컨트롤러 버튼
         self.Stop_btn.clicked.connect(self.Click_Stop_Btn)
+        self.UP_btn.clicked.connect(self.Click_UP_Btn)
+        self.Down_btn.clicked.connect(self.Click_Down_Btn)
+        self.Damping_btn.clicked.connect(self.Click_Damping_Btn)
+        self.Recovery_btn.clicked.connect(self.Click_Recovery_Btn)
+
 
         # 키보드 핫키 설정
         keyboard.on_press_key("w", lambda _: self.set_key('w', True, self.Front_btn,
@@ -179,6 +184,20 @@ class MyWindow(QMainWindow):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Robot_force_Stop()
 
+    def Click_UP_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_STAND_UP()
+    def Click_Down_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_STAND_DOWN()
+    def Click_Damping_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_Damping()
+    def Click_Recovery_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_Recovery_Stand()
+
+
     def set_key(self, key, value, button, style):
         self.pressed_keys[key] = value
         button.setStyleSheet(style if value else "background-color: rgb(255, 255, 255);")
@@ -227,12 +246,12 @@ class MyWindow(QMainWindow):
             self.myunitree_go1.Turn_RL(self.yawspeed_value_R)
 
     def release_TurnL_key_callback(self, event):
-        self.Turn_L_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
+        self.Turn_L_btn.setStyleSheet("background:rgb(33, 28, 98);" "color:rgb(255, 255, 255);")
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_Stop()
 
     def release_TurnR_key_callback(self, event):
-        self.Turn_R_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
+        self.Turn_R_btn.setStyleSheet("background:rgb(33, 28, 98);" "color:rgb(255, 255, 255);")
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_Stop()
 
@@ -247,10 +266,15 @@ class MyWindow(QMainWindow):
             self.myunitree_go1.Change_Mode_to_Force_Stand()
         elif selected_item == "Vel Walk (2)":
             self.myunitree_go1.Change_Mode_to_VEL_WALK()
-        elif selected_item == "Stand Down (5)":
-            self.myunitree_go1.Change_Mode_to_STAND_DOWN()
-        elif selected_item == "Stand Up (6)":
-            self.myunitree_go1.Change_Mode_to_STAND_UP()
+        elif selected_item == "JUMPYAW (10)":
+            self.myunitree_go1.Change_Mode_to_JumpYaw()
+        elif selected_item == "STRAIGHTHAND (11)":
+            self.myunitree_go1.Change_Mode_to_Straighthand()
+        elif selected_item == "DANCE 1":
+            self.myunitree_go1.Change_Mode_to_Dance1()
+        elif selected_item == "DANCE 2":
+            self.myunitree_go1.Change_Mode_to_Dance2()
+
 
     def Change_gaittype_comboBox(self, index):
         selected_item = self.GaitType_ComboBox.currentText()
@@ -260,10 +284,10 @@ class MyWindow(QMainWindow):
             self.myunitree_go1.Change_GaitType_to_IDLE()
         elif selected_item == "Trot (1)":
             self.myunitree_go1.Change_GaitType_to_Trot()
-        elif selected_item == "Climb Stair (2)":
+        elif selected_item == "Trot OBSTACLE (2)":
+            self.myunitree_go1.Change_GaitType_to_Trot_Running()
+        elif selected_item == "Climb Stair (3)":
             self.myunitree_go1.Change_GaitType_to_CLIMB_STAIR()
-        elif selected_item == "Trot Obstacle (3)":
-            self.myunitree_go1.Change_GaitType_to_TROT_OBSTACLE()
 
     # ---------------------------------------------------------------------
     def udp_connect(self):
