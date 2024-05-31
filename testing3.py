@@ -1,5 +1,3 @@
-# 대각선 장애물 감지와 대처 방식 알고리즘 설계 코드
-
 import sys
 import time
 import traceback
@@ -10,6 +8,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import pyqtgraph as pg
+from queue import Queue
 from myunitree_robot_test import myunitree
 from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -36,15 +35,14 @@ class Tread1(QThread):
 
 
 class LidarThread(QThread):
-    update_signal = pyqtSignal(list)
-
-    def __init__(self, lidar):
+    def __init__(self, lidar, data_queue):
         super().__init__()
         self.lidar = lidar
+        self.data_queue = data_queue
 
     def run(self):
         for scan in self.lidar.iter_scans():
-            self.update_signal.emit(scan)
+            self.data_queue.put(scan)
 
 
 class MyWindow(QMainWindow):
@@ -82,6 +80,7 @@ class MyWindow(QMainWindow):
         self.prev_velocity_0_Back_value = 0
         self.prev_velocity_1_Left_value = 0
         self.prev_velocity_1_Right_value = 0
+
 
         # ------ 버튼 -----------------------------------------------------
         self.connect_btn.clicked.connect(self.udp_connect)  # 통신 연결 버튼
@@ -122,6 +121,8 @@ class MyWindow(QMainWindow):
         self.Mode_label = self.findChild(QLabel, "mode_label")
         self.GaitType_label = self.findChild(QLabel, "gaittype_label")
         self.State_Connect_label = self.findChild(QLabel, "state_connect_label")
+        self.Move_State_label = self.findChild(QLabel, "operation_state_label")
+        self.obstacle_label = self.findChild(QLabel, "obstacle_label")
         # ------ ComboBox ---------------------------------------------------
         self.Mode_ComboBox = self.findChild(QComboBox, "mode_comboBox")
         self.Mode_ComboBox.currentIndexChanged.connect(self.Change_mode_combobox)
@@ -131,6 +132,7 @@ class MyWindow(QMainWindow):
         # ----- Lidar -----------------------------------------------
         # Lidar Setup
         try:
+            self.data_queue = Queue()
             self.lidar = RPLidar(PORT_NAME)
             self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
 
@@ -141,11 +143,14 @@ class MyWindow(QMainWindow):
 
             if self.check_lidar_connection():
                 self.lidar.start_motor()
-                self.start_lidar_thread()  # Lidar 스레드 시작
+                self.start_lidar_thread()  # LiDAR 스레드 시작
+                self.timer = QTimer()
+                self.timer.timeout.connect(self.process_lidar_data)
+                self.timer.start(100)  # 100ms마다 데이터 처리
             else:
-                print("Lidar not connected: Thread will not start.")
+                print("LiDAR not connected: Thread will not start.")
         except Exception as e:
-            print(f"Failed to initialize Lidar: {e}")
+            print(f"Failed to initialize LiDAR: {e}")
             self.lidar = None
 
     # ------ SendCmd -------------------------------------
@@ -155,6 +160,7 @@ class MyWindow(QMainWindow):
         self.data_SOC = self.myunitree_go1.hstate_bms_SOC
         self.data_mode = self.myunitree_go1.hstate_mode
         self.data_gaitType = self.myunitree_go1.hstate_gaitType
+        self.data_velocity = self.myunitree_go1.hstate_velocity
         # self.data_position_hstate = self.myunitree_go1.hstate_position
 
         self.update_label()
@@ -207,6 +213,22 @@ class MyWindow(QMainWindow):
                 key_input_vel1 = 0
         if self.obstacle_detected['Right']:
             if key_input_vel1 < 0:
+                key_input_vel1 = 0
+        if self.obstacle_detected['Front-Right']:
+            if key_input_vel0 > 0 and key_input_vel1 > 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Front-Left']:
+            if key_input_vel0 > 0 and key_input_vel1 < 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Back-Right']:
+            if key_input_vel0 < 0 and key_input_vel1 > 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Back-Left']:
+            if key_input_vel0 < 0 and key_input_vel1 < 0:
+                key_input_vel0 = 0
                 key_input_vel1 = 0
 
         # 현재 움직임 상태 업데이트
@@ -294,6 +316,14 @@ class MyWindow(QMainWindow):
             self.State_Connect_label.setText("Disconnect")
             self.State_Connect_label.setStyleSheet("color: red;")
 
+        if (abs(self.data_velocity[0]) < 0.05
+                and abs(self.data_velocity[1]) < 0.05):
+            self.Move_State_label.setText("STOP")
+            self.Move_State_label.setStyleSheet("color: red;")
+        else:
+            self.Move_State_label.setText("Moving..")
+            self.Move_State_label.setStyleSheet("color: blue;")
+
     def update_line(self, scan):
         self.slam_figure.clear()
         polar_ax = self.slam_figure.add_subplot(111, projection='polar')
@@ -318,8 +348,13 @@ class MyWindow(QMainWindow):
                 'Front': False,
                 'Back': False,
                 'Left': False,
-                'Right': False
+                'Right': False,
+                'Front-Right': False,
+                'Front-Left': False,
+                'Back-Right': False,
+                'Back-Left': False
             }
+            self.obstacle_label.setText("Obstacles: 0")
             return
 
         angles = close_points[:, 0]
@@ -340,6 +375,17 @@ class MyWindow(QMainWindow):
         if len(current_cluster) >= 5:
             clusters.append(np.array(current_cluster))
 
+        self.obstacle_detected = {
+            'Front': False,
+            'Back': False,
+            'Left': False,
+            'Right': False,
+            'Front-Right': False,
+            'Front-Left': False,
+            'Back-Right': False,
+            'Back-Left': False
+        }
+
         for cluster in clusters:
             avg_angle = np.mean(cluster[:, 0])
             avg_distance = np.mean(cluster[:, 1])
@@ -347,15 +393,25 @@ class MyWindow(QMainWindow):
             print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
             self.obstacle_detected[direction] = True
 
+        self.obstacle_label.setText(f"{len(clusters)}개")
+
     def determine_direction(self, angle):
-        if 20 <= angle <= 160:
-            return "Right"
-        elif 160 < angle <= 200:
-            return "Back"
-        elif 200 < angle <= 340:
-            return "Left"
-        else:
+        if 337.5 <= angle or angle < 22.5:
             return "Front"
+        elif 22.5 <= angle < 67.5:
+            return "Front-Right"
+        elif 67.5 <= angle < 112.5:
+            return "Right"
+        elif 112.5 <= angle < 157.5:
+            return "Back-Right"
+        elif 157.5 <= angle < 202.5:
+            return "Back"
+        elif 202.5 <= angle < 247.5:
+            return "Back-Left"
+        elif 247.5 <= angle < 292.5:
+            return "Left"
+        elif 292.5 <= angle < 337.5:
+            return "Front-Left"
 
     def check_lidar_connection(self):
         try:
@@ -366,10 +422,14 @@ class MyWindow(QMainWindow):
             print(f"Failed to connect to Lidar: {e}")
             return False
 
+    def process_lidar_data(self):
+        if not self.data_queue.empty():
+            scan = self.data_queue.get()
+            self.update_line(scan)
+
     def start_lidar_thread(self):
         if self.lidar is not None:
-            self.lidar_thread = LidarThread(self.lidar)
-            self.lidar_thread.update_signal.connect(self.update_line)
+            self.lidar_thread = LidarThread(self.lidar, self.data_queue)
             self.lidar_thread.start()
 
     def closeEvent(self, event):
