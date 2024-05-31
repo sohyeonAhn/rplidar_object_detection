@@ -6,13 +6,14 @@ import keyboard
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from PyQt5.QtCore import *
+from queue import Queue
 from PyQt5.QtGui import *
 import pyqtgraph as pg
 from myunitree_robot_test import myunitree
 from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from queue import Queue
+
 
 
 PORT_NAME = 'COM3'

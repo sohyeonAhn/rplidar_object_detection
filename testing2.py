@@ -6,6 +6,7 @@ import keyboard
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from PyQt5.QtCore import *
+from queue import Queue
 from PyQt5.QtGui import *
 import pyqtgraph as pg
 from myunitree_robot_test import myunitree
@@ -34,15 +35,14 @@ class Tread1(QThread):
 
 
 class LidarThread(QThread):
-    update_signal = pyqtSignal(list)
-
-    def __init__(self, lidar):
+    def __init__(self, lidar, data_queue):
         super().__init__()
         self.lidar = lidar
+        self.data_queue = data_queue
 
     def run(self):
         for scan in self.lidar.iter_scans():
-            self.update_signal.emit(scan)
+            self.data_queue.put(scan)
 
 
 class MyWindow(QMainWindow):
@@ -137,6 +137,7 @@ class MyWindow(QMainWindow):
         # ----- Lidar -----------------------------------------------
         # Lidar Setup
         try:
+            self.data_queue = Queue()
             self.lidar = RPLidar(PORT_NAME)
             self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
 
@@ -147,11 +148,14 @@ class MyWindow(QMainWindow):
 
             if self.check_lidar_connection():
                 self.lidar.start_motor()
-                self.start_lidar_thread()  # Lidar 스레드 시작
+                self.start_lidar_thread()  # LiDAR 스레드 시작
+                self.timer = QTimer()
+                self.timer.timeout.connect(self.process_lidar_data)
+                self.timer.start(100)  # 100ms마다 데이터 처리
             else:
-                print("Lidar not connected: Thread will not start.")
+                print("LiDAR not connected: Thread will not start.")
         except Exception as e:
-            print(f"Failed to initialize Lidar: {e}")
+            print(f"Failed to initialize LiDAR: {e}")
             self.lidar = None
 
     # ------ SendCmd -------------------------------------
@@ -403,10 +407,14 @@ class MyWindow(QMainWindow):
             print(f"Failed to connect to Lidar: {e}")
             return False
 
+    def process_lidar_data(self):
+        if not self.data_queue.empty():
+            scan = self.data_queue.get()
+            self.update_line(scan)
+
     def start_lidar_thread(self):
         if self.lidar is not None:
-            self.lidar_thread = LidarThread(self.lidar)
-            self.lidar_thread.update_signal.connect(self.update_line)
+            self.lidar_thread = LidarThread(self.lidar, self.data_queue)
             self.lidar_thread.start()
 
     def closeEvent(self, event):
