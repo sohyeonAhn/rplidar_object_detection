@@ -9,7 +9,7 @@ from PyQt5 import uic
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import pyqtgraph as pg
-from myunitree_robot_test import myunitree
+from myunitree_robot_go1 import myunitree
 from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure

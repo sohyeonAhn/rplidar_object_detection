@@ -6,14 +6,13 @@ import keyboard
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from PyQt5.QtCore import *
-from queue import Queue
 from PyQt5.QtGui import *
 import pyqtgraph as pg
-from myunitree_robot_test import myunitree
+from queue import Queue
+from myunitree_robot_go1 import myunitree
 from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-
 
 
 PORT_NAME = 'COM3'
@@ -88,6 +87,10 @@ class MyWindow(QMainWindow):
         self.disconnect_btn.clicked.connect(self.udp_disconnect)
         # 컨트롤러 버튼
         self.Stop_btn.clicked.connect(self.Click_Stop_Btn)
+        self.UP_btn.clicked.connect(self.Click_UP_Btn)
+        self.Down_btn.clicked.connect(self.Click_Down_Btn)
+        self.Damping_btn.clicked.connect(self.Click_Damping_Btn)
+        self.Recovery_btn.clicked.connect(self.Click_Recovery_Btn)
 
         # 키보드 핫키 설정
         keyboard.on_press_key("w", lambda _: self.set_key('w', True, self.Front_btn,
@@ -183,6 +186,18 @@ class MyWindow(QMainWindow):
     def Click_Stop_Btn(self):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Robot_force_Stop()
+    def Click_UP_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_STAND_UP()
+    def Click_Down_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_STAND_DOWN()
+    def Click_Damping_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_Damping()
+    def Click_Recovery_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_Recovery_Stand()
 
     def set_key(self, key, value, button, style):
         self.pressed_keys[key] = value
@@ -214,6 +229,22 @@ class MyWindow(QMainWindow):
                 key_input_vel1 = 0
         if self.obstacle_detected['Right']:
             if key_input_vel1 < 0:
+                key_input_vel1 = 0
+        if self.obstacle_detected['Front-Right']:
+            if key_input_vel0 > 0 and key_input_vel1 < 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Front-Left']:
+            if key_input_vel0 > 0 and key_input_vel1 > 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Back-Right']:
+            if key_input_vel0 < 0 and key_input_vel1 < 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Back-Left']:
+            if key_input_vel0 < 0 and key_input_vel1 > 0:
+                key_input_vel0 = 0
                 key_input_vel1 = 0
 
         # 현재 움직임 상태 업데이트
@@ -333,7 +364,11 @@ class MyWindow(QMainWindow):
                 'Front': False,
                 'Back': False,
                 'Left': False,
-                'Right': False
+                'Right': False,
+                'Front-Right': False,
+                'Front-Left': False,
+                'Back-Right': False,
+                'Back-Left': False
             }
             self.obstacle_label.setText("Obstacles: 0")
             return
@@ -356,6 +391,17 @@ class MyWindow(QMainWindow):
         if len(current_cluster) >= 5:
             clusters.append(np.array(current_cluster))
 
+        self.obstacle_detected = {
+            'Front': False,
+            'Back': False,
+            'Left': False,
+            'Right': False,
+            'Front-Right': False,
+            'Front-Left': False,
+            'Back-Right': False,
+            'Back-Left': False
+        }
+
         for cluster in clusters:
             avg_angle = np.mean(cluster[:, 0])
             avg_distance = np.mean(cluster[:, 1])
@@ -366,14 +412,22 @@ class MyWindow(QMainWindow):
         self.obstacle_label.setText(f"{len(clusters)}개")
 
     def determine_direction(self, angle):
-        if 20 <= angle <= 160:
-            return "Right"
-        elif 160 < angle <= 200:
-            return "Back"
-        elif 200 < angle <= 340:
-            return "Left"
-        else:
+        if 337.5 <= angle or angle < 22.5:
             return "Front"
+        elif 22.5 <= angle < 67.5:
+            return "Front-Right"
+        elif 67.5 <= angle < 112.5:
+            return "Right"
+        elif 112.5 <= angle < 157.5:
+            return "Back-Right"
+        elif 157.5 <= angle < 202.5:
+            return "Back"
+        elif 202.5 <= angle < 247.5:
+            return "Back-Left"
+        elif 247.5 <= angle < 292.5:
+            return "Left"
+        elif 292.5 <= angle < 337.5:
+            return "Front-Left"
 
     def check_lidar_connection(self):
         try:
