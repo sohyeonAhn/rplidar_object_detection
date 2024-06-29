@@ -161,6 +161,7 @@ class MyWindow(QMainWindow):
     def sendCmd(self):
         self.myunitree_go1.sendCmd()
 
+
         self.data_SOC = self.myunitree_go1.hstate_bms_SOC
         self.data_mode = self.myunitree_go1.hstate_mode
         self.data_gaitType = self.myunitree_go1.hstate_gaitType
