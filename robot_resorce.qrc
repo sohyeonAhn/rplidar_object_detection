@@ -1,0 +1,35 @@
+<RCC>
+  <qresource prefix="connect_btn">
+    <file>picture/icons8-연결-끊김-48.png</file>
+    <file>picture/icons8-연결-64 (1).png</file>
+  </qresource>
+  <qresource prefix="lidar">
+    <file>picture/go1_major_dimensions-removebg-preview.png</file>
+  </qresource>
+  <qresource prefix="seed">
+    <file>picture/icons8-fertilizer-bag-24.png</file>
+    <file>picture/icons8-씨앗과-함께-종이-가방-50.png</file>
+    <file>picture/icons8-open-32.png</file>
+    <file>picture/icons8-자물쇠-50.png</file>
+  </qresource>
+  <qresource prefix="robot_control_btn">
+    <file>picture/icons8-카메라-64.png</file>
+    <file>picture/icons8-어떤-카메라가-없습니다-64.png</file>
+    <file>picture/icons8-pet-food-68.png</file>
+    <file>picture/icons8-어떤-동물-없음-64.png</file>
+    <file>picture/icons8-개처럼-누워-있는-64.png</file>
+    <file>picture/icons8-수의사-80.png</file>
+    <file>picture/icons8-중지-99.png</file>
+    <file>picture/icons8-개-80.png</file>
+    <file>picture/icons8-개-앉히기-64.png</file>
+  </qresource>
+  <qresource prefix="map">
+    <file>picture/icons8-웨이-포인트지도-50.png</file>
+    <file>picture/icons8-지도-64.png</file>
+    <file>picture/icons8-지도-마커-80.png</file>
+  </qresource>
+  <qresource prefix="system">
+    <file>picture/icons8-animal-care-68.png</file>
+    <file>picture/icons8-개-64.png</file>
+  </qresource>
+</RCC>
