@@ -15,7 +15,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 import robot_resorce_rc
-# terminal: pyrcc5 -o robot_resource_rc.py robot_resource.qrc
+# terminal: pyrcc5 -o robot_resorce_rc.py robot_resorce.qrc
 
 PORT_NAME = 'COM3'
 DMAX = 1000  # 최대 거리 설정 (mm)
@@ -129,6 +129,7 @@ class MyWindow(QMainWindow):
         self.State_Connect_label = self.findChild(QLabel, "state_connect_label")
         self.Move_State_label = self.findChild(QLabel, "operation_state_label")
         self.obstacle_label = self.findChild(QLabel, "obstacle_label")
+        self.lidar_connect_label = self.findChild(QLabel, "lidar_connect_label")
         # ------ ComboBox ---------------------------------------------------
         self.Mode_ComboBox = self.findChild(QComboBox, "mode_comboBox")
         self.Mode_ComboBox.currentIndexChanged.connect(self.Change_mode_combobox)
@@ -158,6 +159,8 @@ class MyWindow(QMainWindow):
         except Exception as e:
             print(f"Failed to initialize LiDAR: {e}")
             self.lidar = None
+            self.lidar_connect_label.setText("Disconnect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(237,66,69);")
 
     # ------ SendCmd -------------------------------------
     def sendCmd(self):
@@ -373,7 +376,19 @@ class MyWindow(QMainWindow):
                 'Back-Right': False,
                 'Back-Left': False
             }
+            self.obstacle_distances = {
+                'Front': None,
+                'Back': None,
+                'Left': None,
+                'Right': None,
+                'Front-Right': None,
+                'Front-Left': None,
+                'Back-Right': None,
+                'Back-Left': None
+            }
             self.obstacle_label.setText("Obstacles: 0")
+            self.update_obstacle_colors()
+            self.update_obstacle_distances()
             return
 
         angles = close_points[:, 0]
@@ -405,14 +420,63 @@ class MyWindow(QMainWindow):
             'Back-Left': False
         }
 
+        self.obstacle_distances = {
+            'Front': None,
+            'Back': None,
+            'Left': None,
+            'Right': None,
+            'Front-Right': None,
+            'Front-Left': None,
+            'Back-Right': None,
+            'Back-Left': None
+        }
+
         for cluster in clusters:
             avg_angle = np.mean(cluster[:, 0])
             avg_distance = np.mean(cluster[:, 1])
             direction = self.determine_direction(avg_angle)
-            print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
             self.obstacle_detected[direction] = True
+            self.obstacle_distances[direction] = avg_distance
 
         self.obstacle_label.setText(f"{len(clusters)}개")
+        self.update_obstacle_colors()
+        self.update_obstacle_distances()
+
+    def update_obstacle_colors(self):
+        color_map = {
+            'Front': self.obstacle_front_frame,
+            'Back': self.obstacle_back_frame,
+            'Left': self.obstacle_left_frame,
+            'Right': self.obstacle_right_frame,
+            'Front-Right': self.obstacle_front_right_frame,
+            'Front-Left': self.obstacle_front_left_frame,
+            'Back-Right': self.obstacle_back_right_frame,
+            'Back-Left': self.obstacle_back_left_frame
+        }
+
+        for direction, frame in color_map.items():
+            if self.obstacle_detected[direction]:
+                frame.setStyleSheet("background-color: rgb(237,66,69);")
+            else:
+                frame.setStyleSheet("background-color: rgb(87, 242, 135);")
+
+    def update_obstacle_distances(self):
+        distance_map = {
+            'Front': self.obstacle_front_label,
+            'Back': self.obstacle_back_label,
+            'Left': self.obstacle_left_label,
+            'Right': self.obstacle_right_label,
+            'Front-Right': self.obstacle_front_right_label,
+            'Front-Left': self.obstacle_front_left_label,
+            'Back-Right': self.obstacle_back_right_label,
+            'Back-Left': self.obstacle_back_left_label
+        }
+
+        for direction, label in distance_map.items():
+            if self.obstacle_distances[direction] is not None:
+                label.setText(f"{self.obstacle_distances[direction]:.1f} mm")
+            else:
+                label.setText(" - ")
 
     def determine_direction(self, angle):
         if 337.5 <= angle or angle < 22.5:
@@ -436,9 +500,13 @@ class MyWindow(QMainWindow):
         try:
             info = self.lidar.get_info()
             print(f"Lidar Info: {info}")
+            self.lidar_connect_label.setText("Connect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(87,242,135);")
             return True
         except Exception as e:
             print(f"Failed to connect to Lidar: {e}")
+            self.lidar_connect_label.setText("Disconnect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(237,66,69);")
             return False
 
     def process_lidar_data(self):
