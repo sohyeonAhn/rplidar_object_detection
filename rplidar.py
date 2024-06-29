@@ -331,10 +331,10 @@ class RPLidar(object):
                 data_in_buf = self._serial_port.in_waiting
 #                print(data_in_buf)
                 if data_in_buf > max_buf_meas*dsize:
-                    self.logger.warning(
-                        'Too many measurments in the input buffer: %d/%d. '
-                        'Clearing buffer...',
-                        data_in_buf//dsize, max_buf_meas)
+                    # self.logger.warning(
+                    #     'Too many measurments in the input buffer: %d/%d. '
+                    #     'Clearing buffer...',
+                    #     data_in_buf//dsize, max_buf_meas)
                     self._serial_port.read(data_in_buf//dsize*dsize)
             yield _process_scan(raw)
 

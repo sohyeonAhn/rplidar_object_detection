@@ -184,7 +184,7 @@ background-color: rgb(42, 42, 42);</string>
        <x>30</x>
        <y>80</y>
        <width>170</width>
-       <height>20</height>
+       <height>22</height>
       </rect>
      </property>
      <property name="font">
@@ -258,7 +258,7 @@ color: rgb(255, 255, 255);</string>
        <x>30</x>
        <y>150</y>
        <width>170</width>
-       <height>20</height>
+       <height>22</height>
       </rect>
      </property>
      <property name="font">
@@ -535,8 +535,13 @@ background-color: rgb(35, 39, 42);</string>
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">
-image: url(:/connect_btn/picture/icons8-연결-64 (1).png);
+         <string notr="true">QPushButton {
+    image: url(:/connect_btn/picture/icons8-연결-64 (1).png);
+}
+
+QPushButton:pressed {
+	background-color: rgb(88, 101, 242);
+}
 
 </string>
         </property>
@@ -551,8 +556,13 @@ image: url(:/connect_btn/picture/icons8-연결-64 (1).png);
       <item>
        <widget class="QPushButton" name="disconnect_btn">
         <property name="styleSheet">
-         <string notr="true">
-image: url(:/connect_btn/picture/icons8-연결-끊김-48.png);</string>
+         <string notr="true">QPushButton {
+    image: url(:/connect_btn/picture/icons8-연결-끊김-48.png);
+}
+
+QPushButton:pressed {
+	background-color: rgb(88, 101, 242);
+}</string>
         </property>
         <property name="text">
          <string/>
@@ -1326,7 +1336,7 @@ color:rgb(255, 255, 255);</string>
      <rect>
       <x>430</x>
       <y>500</y>
-      <width>31</width>
+      <width>41</width>
       <height>29</height>
      </rect>
     </property>
@@ -1407,7 +1417,7 @@ color:rgb(255, 255, 255);</string>
      <rect>
       <x>810</x>
       <y>500</y>
-      <width>31</width>
+      <width>41</width>
       <height>27</height>
      </rect>
     </property>
@@ -1609,10 +1619,19 @@ color:rgb(255, 255, 255);</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">image: url(:/robot_control_btn/picture/icons8-개-80.png);</string>
+     <string notr="true">QPushButton {
+    image: url(:/robot_control_btn/picture/icons8-개-80.png);
+}
+
+QPushButton:pressed {
+	background-color: rgb(88, 101, 242);
+}</string>
     </property>
     <property name="text">
      <string/>
+    </property>
+    <property name="default">
+     <bool>false</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="Stop_btn">
@@ -1636,7 +1655,14 @@ color:rgb(255, 255, 255);</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">image: url(:/robot_control_btn/picture/icons8-중지-99.png);</string>
+     <string notr="true">QPushButton {
+    image: url(:/robot_control_btn/picture/icons8-중지-99.png);
+}
+
+QPushButton:pressed {
+	
+	background-color: rgb(237, 163, 164);
+}</string>
     </property>
     <property name="text">
      <string/>
@@ -1663,7 +1689,13 @@ color:rgb(255, 255, 255);</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">image: url(:/robot_control_btn/picture/icons8-수의사-80.png);</string>
+     <string notr="true">QPushButton {
+    image: url(:/robot_control_btn/picture/icons8-수의사-80.png);
+}
+
+QPushButton:pressed {
+	background-color: rgb(88, 101, 242);
+}</string>
     </property>
     <property name="text">
      <string/>
@@ -1690,7 +1722,13 @@ color:rgb(255, 255, 255);</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">image: url(:/robot_control_btn/picture/icons8-개처럼-누워-있는-64.png);</string>
+     <string notr="true">QPushButton {
+    image: url(:/robot_control_btn/picture/icons8-개처럼-누워-있는-64.png);
+}
+
+QPushButton:pressed {
+	background-color: rgb(88, 101, 242);
+}</string>
     </property>
     <property name="text">
      <string/>
@@ -1717,7 +1755,13 @@ color:rgb(255, 255, 255);</string>
      <bool>false</bool>
     </property>
     <property name="styleSheet">
-     <string notr="true">image: url(:/robot_control_btn/picture/icons8-어떤-동물-없음-64.png);</string>
+     <string notr="true">QPushButton {
+    image: url(:/robot_control_btn/picture/icons8-어떤-동물-없음-64.png);
+}
+
+QPushButton:pressed {
+	background-color: rgb(88, 101, 242);
+}</string>
     </property>
     <property name="text">
      <string/>
@@ -2036,7 +2080,7 @@ color:rgb(255, 255, 255);</string>
    <widget class="QPushButton" name="map_mark_btn">
     <property name="geometry">
      <rect>
-      <x>1300</x>
+      <x>1330</x>
       <y>500</y>
       <width>30</width>
       <height>30</height>
@@ -2063,7 +2107,7 @@ color:rgb(255, 255, 255);</string>
    <widget class="QPushButton" name="map_pathway_btn">
     <property name="geometry">
      <rect>
-      <x>1430</x>
+      <x>1480</x>
       <y>500</y>
       <width>30</width>
       <height>30</height>
@@ -2092,7 +2136,7 @@ color:rgb(255, 255, 255);</string>
      <rect>
       <x>1240</x>
       <y>500</y>
-      <width>61</width>
+      <width>81</width>
       <height>30</height>
      </rect>
     </property>
@@ -2108,7 +2152,7 @@ color:rgb(255, 255, 255);</string>
      <string notr="true">color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>Mark</string>
+     <string>Mark :</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
@@ -2117,9 +2161,9 @@ color:rgb(255, 255, 255);</string>
    <widget class="QLabel" name="label_20">
     <property name="geometry">
      <rect>
-      <x>1350</x>
+      <x>1380</x>
       <y>500</y>
-      <width>71</width>
+      <width>91</width>
       <height>30</height>
      </rect>
     </property>
@@ -2135,7 +2179,7 @@ color:rgb(255, 255, 255);</string>
      <string notr="true">color: rgb(255, 255, 255);</string>
     </property>
     <property name="text">
-     <string>PathWay</string>
+     <string>PathWay :</string>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
@@ -2408,7 +2452,7 @@ background-color: rgb(42, 42, 42);</string>
      <rect>
       <x>500</x>
       <y>540</y>
-      <width>61</width>
+      <width>65</width>
       <height>21</height>
      </rect>
     </property>
@@ -2433,9 +2477,9 @@ background-color: rgb(42, 42, 42);</string>
    <widget class="QLabel" name="obstacle_front_right_label">
     <property name="geometry">
      <rect>
-      <x>590</x>
+      <x>600</x>
       <y>560</y>
-      <width>61</width>
+      <width>65</width>
       <height>18</height>
      </rect>
     </property>
@@ -2460,9 +2504,9 @@ background-color: rgb(42, 42, 42);</string>
    <widget class="QLabel" name="obstacle_front_left_label">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>390</x>
       <y>560</y>
-      <width>61</width>
+      <width>65</width>
       <height>20</height>
      </rect>
     </property>
@@ -2487,9 +2531,9 @@ background-color: rgb(42, 42, 42);</string>
    <widget class="QLabel" name="obstacle_right_label">
     <property name="geometry">
      <rect>
-      <x>590</x>
+      <x>600</x>
       <y>640</y>
-      <width>51</width>
+      <width>65</width>
       <height>18</height>
      </rect>
     </property>
@@ -2514,9 +2558,9 @@ background-color: rgb(42, 42, 42);</string>
    <widget class="QLabel" name="obstacle_left_label">
     <property name="geometry">
      <rect>
-      <x>410</x>
+      <x>390</x>
       <y>640</y>
-      <width>51</width>
+      <width>65</width>
       <height>18</height>
      </rect>
     </property>
@@ -2543,7 +2587,7 @@ background-color: rgb(42, 42, 42);</string>
      <rect>
       <x>500</x>
       <y>750</y>
-      <width>61</width>
+      <width>65</width>
       <height>18</height>
      </rect>
     </property>
@@ -2568,9 +2612,9 @@ background-color: rgb(42, 42, 42);</string>
    <widget class="QLabel" name="obstacle_back_right_label">
     <property name="geometry">
      <rect>
-      <x>590</x>
+      <x>600</x>
       <y>730</y>
-      <width>51</width>
+      <width>65</width>
       <height>18</height>
      </rect>
     </property>
@@ -2595,9 +2639,9 @@ background-color: rgb(42, 42, 42);</string>
    <widget class="QLabel" name="obstacle_back_left_label">
     <property name="geometry">
      <rect>
-      <x>420</x>
+      <x>390</x>
       <y>730</y>
-      <width>51</width>
+      <width>65</width>
       <height>18</height>
      </rect>
     </property>

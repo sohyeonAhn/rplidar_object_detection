@@ -386,7 +386,7 @@ class MyWindow(QMainWindow):
                 'Back-Right': None,
                 'Back-Left': None
             }
-            self.obstacle_label.setText("Obstacles: 0")
+            self.obstacle_label.setText("0")
             self.update_obstacle_colors()
             self.update_obstacle_distances()
             return
