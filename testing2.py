@@ -75,7 +75,11 @@ class MyWindow(QMainWindow):
             'Front': False,
             'Back': False,
             'Left': False,
-            'Right': False
+            'Right': False,
+            'Front-Right': False,
+            'Front-Left': False,
+            'Back-Right': False,
+            'Back-Left': False
         }
 
         self.prev_velocity_0_Front_value = 0
