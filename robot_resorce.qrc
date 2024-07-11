@@ -29,7 +29,12 @@
     <file>picture/icons8-지도-마커-80.png</file>
   </qresource>
   <qresource prefix="system">
-    <file>picture/icons8-animal-care-68.png</file>
     <file>picture/icons8-개-64.png</file>
+    <file>picture/icons8-개-점프-64.png</file>
+    <file>picture/icons8-새싹-64.png</file>
+    <file>picture/icons8-아웃-피드-100.png</file>
+    <file>picture/icons8-제어-장치-64.png</file>
+    <file>picture/icons8-speedometer-48.png</file>
+    <file>picture/tukorea.png</file>
   </qresource>
 </RCC>
