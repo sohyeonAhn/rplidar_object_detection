@@ -15,6 +15,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 import robot_resorce_rc
+
+# GUI 이미지 넣기 위한 코드
 # terminal: pyrcc5 -o robot_resorce_rc.py robot_resorce.qrc
 
 PORT_NAME = 'COM3'
