@@ -24,8 +24,12 @@
     <file>picture/icons8-개-앉히기-64.png</file>
   </qresource>
   <qresource prefix="map">
-    <file>picture/icons8-웨이-포인트지도-50.png</file>
+    <file>picture/icons8-정사각형-멈춤-1.png</file>
+    <file>picture/icons8-축소-100.png</file>
+    <file>picture/icons8-확대-100.png</file>
     <file>picture/icons8-지도-64.png</file>
+    <file>picture/icons8-스타트-100.png</file>
+    <file>picture/icons8-정사각형-멈춤-100.png</file>
     <file>picture/icons8-지도-마커-80.png</file>
   </qresource>
   <qresource prefix="system">
