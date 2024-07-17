@@ -1,4 +1,7 @@
 import sys
+import serial
+import pynmea2
+import csv
 import time
 import traceback
 import numpy as np
@@ -7,6 +10,10 @@ from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
+from PyQt5.QtWebEngineWidgets import *
+import os
+import subprocess
+import threading
 import pyqtgraph as pg
 from queue import Queue
 from myunitree_robot_go1 import myunitree
@@ -48,6 +55,10 @@ class LidarThread(QThread):
         for scan in self.lidar.iter_scans():
             self.data_queue.put(scan)
 
+class CustomWebEnginePage(QWebEnginePage):
+    def javaScriptConsoleMessage(self, level, message, line_number, source_id):
+        print(f"콘솔 메시지: {message} (줄 {line_number}): {source_id}")
+
 
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -88,7 +99,6 @@ class MyWindow(QMainWindow):
         self.prev_velocity_0_Back_value = 0
         self.prev_velocity_1_Left_value = 0
         self.prev_velocity_1_Right_value = 0
-
 
         # ------ 버튼 -----------------------------------------------------
         self.connect_btn.clicked.connect(self.udp_connect)  # 통신 연결 버튼
@@ -168,10 +178,49 @@ class MyWindow(QMainWindow):
             self.lidar_connect_label.setText("Disconnect")
             self.lidar_connect_label.setStyleSheet("color: rgb(237,66,69);")
 
+        # ----------------------GPS-----------------------------------
+        # Google Maps API Key
+        self.api_key = "AIzaSyBUBAhu3jl8NIC54-BXqEggLmJo-YNCIcw"
+
+        # UI 요소 초기화
+        self.map_view_widget = self.findChild(QWidget, "map_view")
+        self.map_view = QWebEngineView()
+        self.map_view.setPage(
+            CustomWebEnginePage(self.map_view))  # CustomWebEnginePage 클래스에 맞는 인스턴스를 생성하여 setPage 메서드에 전달
+
+        # QVBoxLayout을 사용하여 map_view_widget에 QWebEngineView 추가
+        layout = QVBoxLayout(self.map_view_widget)
+        layout.addWidget(self.map_view)
+
+        self.is_logging = False
+        self.first_marker_added = False
+
+        self.load_map()
+
+        # 주기적으로 GPS 데이터를 읽기 위한 타이머 설정
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.read_gps_data)
+        self.timer.start(1000)  # 1초마다 GPS 데이터 읽기
+
+        # CSV 파일 초기화
+        self.init_csv()
+
+        # GPS 시리얼 연결 설정
+        self.port = '/dev/ttyTHS1'  # GPS 모듈의 시리얼 포트로 변경
+        self.ser = serial.Serial(self.port, baudrate=115200, timeout=5)
+
+        # 버튼 클릭 이벤트 연결
+        self.map_expand_btn.clicked.connect(lambda: self.execute_js("map.setZoom(map.getZoom() + 1);"))
+        self.map_reduce_btn.clicked.connect(lambda: self.execute_js("map.setZoom(map.getZoom() - 1);"))
+        self.map_record_start_btn.clicked.connect(self.start_logging)
+        self.map_record_stop_btn.clicked.connect(self.stop_logging)
+
+        # 위치 기록 주기 변경 이벤트 연결
+        self.input_map_period.valueChanged.connect(self.update_logging_interval)
+
     # ------ SendCmd -------------------------------------
     def sendCmd(self):
         self.myunitree_go1.sendCmd()
-
 
         self.data_SOC = self.myunitree_go1.hstate_bms_SOC
         self.data_mode = self.myunitree_go1.hstate_mode
@@ -185,11 +234,9 @@ class MyWindow(QMainWindow):
     def vel_0_value_changed(self, value):
         self.velocity_0_Front_value = value
         self.velocity_0_Back_value = -value
-
     def vel_1_value_changed(self, value):
         self.velocity_1_Left_value = value
         self.velocity_1_Right_value = -value
-
     def yawspeed_value_changed(self, value):
         self.yawspeed_value_L = value
         self.yawspeed_value_R = -value
@@ -210,7 +257,6 @@ class MyWindow(QMainWindow):
     def Click_Recovery_Btn(self):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Change_Mode_to_Recovery_Stand()
-
     def set_key(self, key, value, button, style):
         self.pressed_keys[key] = value
         button.setStyleSheet(style if value else "background-color: rgb(255, 255, 255);")
@@ -531,8 +577,146 @@ class MyWindow(QMainWindow):
         self.lidar.disconnect()
         super().closeEvent(event)
 
+    def load_map(self):
+        html_content = self.get_map_html()
+        with open('map.html', 'w') as f:
+            f.write(html_content)
+
+        # 로컬 서버에서 파일을 서빙
+        self.map_view.setUrl(QUrl(f"http://localhost:8001/map.html"))
+
+    def get_map_html(self):
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Google Maps</title>
+            <style>
+                body, html {{
+                    height: 100%;
+                    margin: 0;
+                    padding: 0;
+                }}
+                #map {{
+                    height: 100%;
+                }}
+            </style>
+            <script>
+                let map;
+                let polyline;
+                let path = [];
+
+                function initMap() {{
+                    map = new google.maps.Map(document.getElementById('map'), {{
+                        center: {{lat: 0, lng: 0}},  // 초기 중심을 위도 0, 경도 0으로 설정
+                        zoom: 2
+                    }});
+
+                    polyline = new google.maps.Polyline({{
+                        path: path,
+                        geodesic: true,
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 2
+                    }});
+                    polyline.setMap(map);
+                }}
+
+                function addMarker(lat, lng) {{
+                    var position = new google.maps.LatLng(lat, lng);
+                    var marker = new google.maps.Marker({{
+                        position: position,
+                        map: map
+                    }});
+                    path.push(position);
+                    polyline.setPath(path);
+                    map.setCenter(position);  // 중심을 새 마커 위치로 이동
+                }}
+            </script>
+        </head>
+        <body>
+            <div id="map"></div>
+            <script src="https://maps.googleapis.com/maps/api/js?key={self.api_key}&callback=initMap" async defer></script>
+        </body>
+        </html>
+        """
+
+    @pyqtSlot()
+    def read_gps_data(self):
+        try:
+            line = self.ser.readline().decode('utf-8')
+            if line.startswith('$GPGGA'):
+                msg = pynmea2.parse(line)
+                lat = msg.latitude
+                lon = msg.longitude
+                if msg.lat_dir == 'S':
+                    lat = -lat
+                if msg.lon_dir == 'W':
+                    lon = -lon
+                self.add_marker(lat, lon)
+                self.latitude_label.setText(f"{lat}")
+                self.longitude_label.setText(f"{lon}")
+
+                # 항상 기록하는 CSV 파일에 저장
+                self.save_to_csv(lat, lon, 'gps_data_always.csv')
+
+                # 시작/정지 버튼을 통해 기록하는 CSV 파일에 저장
+                if self.is_logging:
+                    self.save_to_csv(lat, lon, 'gps_data_logging.csv')
+        except serial.SerialException as e:
+            self.map_status_label.setText(f"시리얼 통신 오류: {str(e)}")
+        except pynmea2.nmea.ParseError as e:
+            self.map_status_label.setText(f"NMEA 데이터 파싱 실패: {str(e)}")
+        except Exception as e:
+            self.map_status_label.setText(f"예상치 못한 오류 발생: {str(e)}")
+
+    def add_marker(self, lat, lon):
+        self.execute_js(f"addMarker({lat}, {lon});")
+
+    def execute_js(self, script):
+        self.map_view.page().runJavaScript(script)
+
+    def init_csv(self):
+        # 항상 기록하는 CSV 파일 초기화
+        with open('gps_data_always.csv', 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['Latitude', 'Longitude'])
+
+        # 시작/정지 버튼을 통해 기록하는 CSV 파일 초기화
+        with open('gps_data_logging.csv', 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['Latitude', 'Longitude'])
+
+    def save_to_csv(self, lat, lon, filename):
+        # 지정된 CSV 파일에 GPS 데이터 저장
+        with open(filename, 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow([lat, lon])
+
+    def start_logging(self):
+        self.is_logging = True
+        self.map_status_label.setText("데이터 기록 시작")
+
+    def stop_logging(self):
+        self.is_logging = False
+        self.map_status_label.setText("데이터 기록 정지")
+
+    def update_logging_interval(self):
+        # 위치 기록 주기 업데이트
+        interval = self.input_map_period.value() * 1000  # 밀리초 단위로 변환
+        self.timer.setInterval(interval)
 
 if __name__ == '__main__':
+    # 로컬 서버 실행
+    def run_local_server():
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+        subprocess.run(['python3', '-m', 'http.server', '8001'])
+
+    server_thread = threading.Thread(target=run_local_server)
+    server_thread.daemon = True
+    server_thread.start()
+    sys.argv.append('--no-sandbox')
+
     app = QApplication(sys.argv)
     window = MyWindow()
     window.show()

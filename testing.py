@@ -14,6 +14,10 @@ from rplidar import RPLidar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
+import robot_resorce_rc
+
+# GUI 이미지 넣기 위한 코드
+# terminal: pyrcc5 -o robot_resorce_rc.py robot_resorce.qrc
 
 PORT_NAME = 'COM3'
 DMAX = 1000  # 최대 거리 설정 (mm)
@@ -48,7 +52,7 @@ class LidarThread(QThread):
 class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        uic.loadUi(r'./sample2.ui', self)  # Ui 연결
+        uic.loadUi(r'./gui_test.ui', self)  # Ui 연결
         self.myunitree_go1 = myunitree()  # myunitree  class 불러와서 명명
         # ----- 변수 초기화 ------------------------------------------
         self.velocity_0_Front_value = 0
@@ -98,19 +102,19 @@ class MyWindow(QMainWindow):
 
         # 키보드 핫키 설정
         keyboard.on_press_key("w", lambda _: self.set_key('w', True, self.Front_btn,
-                                                          "background-color: rgb(172, 206, 255);"))
+                                                          "background-color: rgb(114, 137, 218);"))
         keyboard.on_release_key("w", lambda _: self.set_key('w', False, self.Front_btn,
                                                             "background-color: rgb(255, 255, 255);"))
         keyboard.on_press_key("s", lambda _: self.set_key('s', True, self.Back_btn,
-                                                          "background-color: rgb(172, 206, 255);"))
+                                                          "background-color: rgb(114, 137, 218);"))
         keyboard.on_release_key("s", lambda _: self.set_key('s', False, self.Back_btn,
                                                             "background-color: rgb(255, 255, 255);"))
         keyboard.on_press_key("a", lambda _: self.set_key('a', True, self.Left_btn,
-                                                          "background-color: rgb(172, 206, 255);"))
+                                                          "background-color: rgb(114, 137, 218);"))
         keyboard.on_release_key("a", lambda _: self.set_key('a', False, self.Left_btn,
                                                             "background-color: rgb(255, 255, 255);"))
         keyboard.on_press_key("d", lambda _: self.set_key('d', True, self.Right_btn,
-                                                          "background-color: rgb(172, 206, 255);"))
+                                                          "background-color: rgb(114, 137, 218);"))
         keyboard.on_release_key("d", lambda _: self.set_key('d', False, self.Right_btn,
                                                             "background-color: rgb(255, 255, 255);"))
 
@@ -131,6 +135,7 @@ class MyWindow(QMainWindow):
         self.State_Connect_label = self.findChild(QLabel, "state_connect_label")
         self.Move_State_label = self.findChild(QLabel, "operation_state_label")
         self.obstacle_label = self.findChild(QLabel, "obstacle_label")
+        self.lidar_connect_label = self.findChild(QLabel, "lidar_connect_label")
         # ------ ComboBox ---------------------------------------------------
         self.Mode_ComboBox = self.findChild(QComboBox, "mode_comboBox")
         self.Mode_ComboBox.currentIndexChanged.connect(self.Change_mode_combobox)
@@ -160,6 +165,8 @@ class MyWindow(QMainWindow):
         except Exception as e:
             print(f"Failed to initialize LiDAR: {e}")
             self.lidar = None
+            self.lidar_connect_label.setText("Disconnect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(237,66,69);")
 
     # ------ SendCmd -------------------------------------
     def sendCmd(self):
@@ -258,22 +265,22 @@ class MyWindow(QMainWindow):
         self.myunitree_go1.Move_mult(self.move_velocity_0_value, self.move_velocity_1_value)
 
     def press_TurnL_key_callback(self, event):
-        self.Turn_L_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
+        self.Turn_L_btn.setStyleSheet("background-color: rgb(235, 69, 158);")
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_RL(self.yawspeed_value_L)
 
     def press_TurnR_key_callback(self, event):
-        self.Turn_R_btn.setStyleSheet("background-color: rgb(206, 206, 206);")
+        self.Turn_R_btn.setStyleSheet("background-color: rgb(235, 69, 158);")
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_RL(self.yawspeed_value_R)
 
     def release_TurnL_key_callback(self, event):
-        self.Turn_L_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
+        self.Turn_L_btn.setStyleSheet("background:rgb(153, 170, 181);" "color:rgb(255, 255, 255);")
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_Stop()
 
     def release_TurnR_key_callback(self, event):
-        self.Turn_R_btn.setStyleSheet("background:rgb(112, 112, 112);" "color:rgb(255, 255, 255);")
+        self.Turn_R_btn.setStyleSheet("background:rgb(153, 170, 181);" "color:rgb(255, 255, 255);")
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Turn_Stop()
 
@@ -332,18 +339,18 @@ class MyWindow(QMainWindow):
 
         if self.myunitree_go1.connect_flag:
             self.State_Connect_label.setText("Connect")
-            self.State_Connect_label.setStyleSheet("color: blue;")
+            self.State_Connect_label.setStyleSheet("color: rgb(87,242,135);")
         else:
             self.State_Connect_label.setText("Disconnect")
-            self.State_Connect_label.setStyleSheet("color: red;")
+            self.State_Connect_label.setStyleSheet("color: rgb(237,66,69);")
 
         if (abs(self.data_velocity[0]) < 0.05
                 and abs(self.data_velocity[1]) < 0.05):
             self.Move_State_label.setText("STOP")
-            self.Move_State_label.setStyleSheet("color: red;")
+            self.Move_State_label.setStyleSheet("color: rgb(237,66,69);")
         else:
             self.Move_State_label.setText("Moving..")
-            self.Move_State_label.setStyleSheet("color: blue;")
+            self.Move_State_label.setStyleSheet("color: rgb(254,231,92);")
 
     def update_line(self, scan):
         self.slam_figure.clear()
@@ -375,7 +382,19 @@ class MyWindow(QMainWindow):
                 'Back-Right': False,
                 'Back-Left': False
             }
-            self.obstacle_label.setText("Obstacles: 0")
+            self.obstacle_distances = {
+                'Front': None,
+                'Back': None,
+                'Left': None,
+                'Right': None,
+                'Front-Right': None,
+                'Front-Left': None,
+                'Back-Right': None,
+                'Back-Left': None
+            }
+            self.obstacle_label.setText("0")
+            self.update_obstacle_colors()
+            self.update_obstacle_distances()
             return
 
         angles = close_points[:, 0]
@@ -407,14 +426,63 @@ class MyWindow(QMainWindow):
             'Back-Left': False
         }
 
+        self.obstacle_distances = {
+            'Front': None,
+            'Back': None,
+            'Left': None,
+            'Right': None,
+            'Front-Right': None,
+            'Front-Left': None,
+            'Back-Right': None,
+            'Back-Left': None
+        }
+
         for cluster in clusters:
             avg_angle = np.mean(cluster[:, 0])
             avg_distance = np.mean(cluster[:, 1])
             direction = self.determine_direction(avg_angle)
-            print(f"장애물 감지: 방향 {direction}, 평균 거리 {avg_distance}mm")
             self.obstacle_detected[direction] = True
+            self.obstacle_distances[direction] = avg_distance
 
         self.obstacle_label.setText(f"{len(clusters)}개")
+        self.update_obstacle_colors()
+        self.update_obstacle_distances()
+
+    def update_obstacle_colors(self):
+        color_map = {
+            'Front': self.obstacle_front_frame,
+            'Back': self.obstacle_back_frame,
+            'Left': self.obstacle_left_frame,
+            'Right': self.obstacle_right_frame,
+            'Front-Right': self.obstacle_front_right_frame,
+            'Front-Left': self.obstacle_front_left_frame,
+            'Back-Right': self.obstacle_back_right_frame,
+            'Back-Left': self.obstacle_back_left_frame
+        }
+
+        for direction, frame in color_map.items():
+            if self.obstacle_detected[direction]:
+                frame.setStyleSheet("background-color: rgb(237,66,69);")
+            else:
+                frame.setStyleSheet("background-color: rgb(87, 242, 135);")
+
+    def update_obstacle_distances(self):
+        distance_map = {
+            'Front': self.obstacle_front_label,
+            'Back': self.obstacle_back_label,
+            'Left': self.obstacle_left_label,
+            'Right': self.obstacle_right_label,
+            'Front-Right': self.obstacle_front_right_label,
+            'Front-Left': self.obstacle_front_left_label,
+            'Back-Right': self.obstacle_back_right_label,
+            'Back-Left': self.obstacle_back_left_label
+        }
+
+        for direction, label in distance_map.items():
+            if self.obstacle_distances[direction] is not None:
+                label.setText(f"{self.obstacle_distances[direction]:.1f} mm")
+            else:
+                label.setText(" - ")
 
     def determine_direction(self, angle):
         if 337.5 <= angle or angle < 22.5:
@@ -438,9 +506,13 @@ class MyWindow(QMainWindow):
         try:
             info = self.lidar.get_info()
             print(f"Lidar Info: {info}")
+            self.lidar_connect_label.setText("Connect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(87,242,135);")
             return True
         except Exception as e:
             print(f"Failed to connect to Lidar: {e}")
+            self.lidar_connect_label.setText("Disconnect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(237,66,69);")
             return False
 
     def process_lidar_data(self):
