@@ -1,141 +1,751 @@
 import sys
-from PyQt5.QtCore import Qt, QUrl, pyqtSlot
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLineEdit, QLabel
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
+import serial
+import pynmea2
+import csv
+import time
+import traceback
+import numpy as np
+import keyboard
+from PyQt5.QtWidgets import *
+from PyQt5 import uic
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWebEngineWidgets import *
 import os
+import subprocess
+import threading
+import pyqtgraph as pg
+from queue import Queue
+from myunitree_robot_go1 import myunitree
+# from rplidar import RPLidar
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
-class CustomWebEnginePage(QWebEnginePage):
-    def javaScriptConsoleMessage(self, level, message, line_number, source_id):
-        print(f"Console message: {message} (line {line_number}): {source_id}")
+import robot_resorce_rc
 
-class MapApp(QMainWindow):
+# GUI 이미지 넣기 위한 코드
+# terminal: pyrcc5 -o robot_resorce_rc.py robot_resorce.qrc
+
+PORT_NAME = 'COM3'
+DMAX = 1000  # 최대 거리 설정 (mm)
+
+
+class Tread1(QThread):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+
+    def run(self):
+        try:
+            while True:
+                time.sleep(0.01)
+                self.parent.sendCmd()
+        except Exception as e:
+            print("Tread1에서 예외 발생:")
+            traceback.print_exc()
+
+
+class LidarThread(QThread):
+    def __init__(self, lidar, data_queue):
+        super().__init__()
+        self.lidar = lidar
+        self.data_queue = data_queue
+
+    def run(self):
+        for scan in self.lidar.iter_scans():
+            self.data_queue.put(scan)
+
+
+class MyWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        uic.loadUi(r'./gui_test.ui', self)  # Ui 연결
+        self.myunitree_go1 = myunitree()  # myunitree  class 불러와서 명명
+        # ----- 변수 초기화 ------------------------------------------
+        self.velocity_0_Front_value = 0
+        self.velocity_0_Back_value = 0
+        self.velocity_1_Left_value = 0
+        self.velocity_1_Right_value = 0
+        self.yawspeed_value_L = 0
+        self.yawspeed_value_R = 0
+        self.move_velocity_0_value = 0
+        self.move_velocity_1_value = 0
 
-        self.setWindowTitle("Google Maps with PyQt5")
-        self.setGeometry(100, 100, 1200, 800)
+        # 키보드 상태 트래킹
+        self.pressed_keys = {
+            'w': False,
+            's': False,
+            'a': False,
+            'd': False
+        }
 
-        # API Key for Google Maps
+        # 장애물 회피용 변수 초기화
+        self.obstacle_detected = {
+            'Front': False,
+            'Back': False,
+            'Left': False,
+            'Right': False,
+            'Front-Right': False,
+            'Front-Left': False,
+            'Back-Right': False,
+            'Back-Left': False
+        }
+
+        self.prev_velocity_0_Front_value = 0
+        self.prev_velocity_0_Back_value = 0
+        self.prev_velocity_1_Left_value = 0
+        self.prev_velocity_1_Right_value = 0
+
+        # ------ 버튼 -----------------------------------------------------
+        self.connect_btn.clicked.connect(self.udp_connect)  # 통신 연결 버튼
+        self.disconnect_btn.clicked.connect(self.udp_disconnect)
+        # 컨트롤러 버튼
+        self.Stop_btn.clicked.connect(self.Click_Stop_Btn)
+        self.UP_btn.clicked.connect(self.Click_UP_Btn)
+        self.Down_btn.clicked.connect(self.Click_Down_Btn)
+        self.Damping_btn.clicked.connect(self.Click_Damping_Btn)
+        self.Recovery_btn.clicked.connect(self.Click_Recovery_Btn)
+
+        # 키보드 핫키 설정
+        keyboard.on_press_key("w", lambda _: self.set_key('w', True, self.Front_btn,
+                                                          "background-color: rgb(114, 137, 218);"))
+        keyboard.on_release_key("w", lambda _: self.set_key('w', False, self.Front_btn,
+                                                            "background-color: rgb(255, 255, 255);"))
+        keyboard.on_press_key("s", lambda _: self.set_key('s', True, self.Back_btn,
+                                                          "background-color: rgb(114, 137, 218);"))
+        keyboard.on_release_key("s", lambda _: self.set_key('s', False, self.Back_btn,
+                                                            "background-color: rgb(255, 255, 255);"))
+        keyboard.on_press_key("a", lambda _: self.set_key('a', True, self.Left_btn,
+                                                          "background-color: rgb(114, 137, 218);"))
+        keyboard.on_release_key("a", lambda _: self.set_key('a', False, self.Left_btn,
+                                                            "background-color: rgb(255, 255, 255);"))
+        keyboard.on_press_key("d", lambda _: self.set_key('d', True, self.Right_btn,
+                                                          "background-color: rgb(114, 137, 218);"))
+        keyboard.on_release_key("d", lambda _: self.set_key('d', False, self.Right_btn,
+                                                            "background-color: rgb(255, 255, 255);"))
+
+        keyboard.on_press_key("q", self.press_TurnL_key_callback)
+        keyboard.on_release_key("q", self.release_TurnL_key_callback)
+        keyboard.on_press_key("e", self.press_TurnR_key_callback)
+        keyboard.on_release_key("e", self.release_TurnR_key_callback)
+
+        # ------ 값 입력 ----------------------------------------------------
+        self.input_vel_0.valueChanged.connect(self.vel_0_value_changed)
+        self.input_vel_1.valueChanged.connect(self.vel_1_value_changed)
+        self.input_yawspeed.valueChanged.connect(self.yawspeed_value_changed)
+
+        # ------ Label -----------------------------------------------------
+        self.SOC_label = self.findChild(QLabel, "SOC_label")
+        self.Mode_label = self.findChild(QLabel, "mode_label")
+        self.GaitType_label = self.findChild(QLabel, "gaittype_label")
+        self.State_Connect_label = self.findChild(QLabel, "state_connect_label")
+        self.Move_State_label = self.findChild(QLabel, "operation_state_label")
+        self.obstacle_label = self.findChild(QLabel, "obstacle_label")
+        self.lidar_connect_label = self.findChild(QLabel, "lidar_connect_label")
+        # ------ ComboBox ---------------------------------------------------
+        self.Mode_ComboBox = self.findChild(QComboBox, "mode_comboBox")
+        self.Mode_ComboBox.currentIndexChanged.connect(self.Change_mode_combobox)
+        self.GaitType_ComboBox = self.findChild(QComboBox, "gaittype_comboBox")
+        self.GaitType_ComboBox.currentIndexChanged.connect(self.Change_gaittype_comboBox)
+
+        # ----------------------GPS-----------------------------------
+        # Google Maps API Key
         self.api_key = "AIzaSyBUBAhu3jl8NIC54-BXqEggLmJo-YNCIcw"
 
-        # Initialize UI elements
-        self.map_view = QWebEngineView()
-        self.map_view.setPage(CustomWebEnginePage(self.map_view))
-        self.lat_input = QLineEdit()
-        self.lon_input = QLineEdit()
-        self.add_marker_button = QPushButton("Add Marker and Record Path")
-        self.zoom_in_button = QPushButton("Zoom In")
-        self.zoom_out_button = QPushButton("Zoom Out")
-        self.status_label = QLabel("Enter latitude and longitude and click 'Add Marker and Record Path'.")
+        # UI 요소 초기화
+        self.map_view = QWebEngineView(self)  # QWebEngineView로 변경
+        self.map_status_label = QLabel()
 
-        self.init_ui()
+        # 줌인 및 줌아웃 버튼
+        self.map_expand_btn = QPushButton()
+        self.map_reduce_btn = QPushButton()
+
+        # 기록 시작 및 정지 버튼
+        self.map_record_start_btn = QPushButton()
+        self.map_record_stop_btn = QPushButton()
+        self.is_logging = False
+        self.first_marker_added = False
+
+        # 위치 기록 주기 설정 박스
+        self.input_map_period = QDoubleSpinBox()
+        self.input_map_period.setRange(1, 60)
+        self.input_map_period.setValue(1)
+
+        # 위도, 경도
+        self.latitude_label = QLabel()
+        self.longitude_label = QLabel()
+
         self.load_map()
 
-    def init_ui(self):
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
+        # 주기적으로 GPS 데이터를 읽기 위한 타이머 설정
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.read_gps_data)
+        self.timer.start(1000)  # 1초마다 GPS 데이터 읽기
 
-        layout = QVBoxLayout()
-        central_widget.setLayout(layout)
+        # CSV 파일 초기화
+        self.init_csv()
 
-        controls_layout = QHBoxLayout()
-        controls_layout.addWidget(QLabel("Latitude:"))
-        self.lat_input.setPlaceholderText("Enter latitude")
-        controls_layout.addWidget(self.lat_input)
-        controls_layout.addWidget(QLabel("Longitude:"))
-        self.lon_input.setPlaceholderText("Enter longitude")
-        controls_layout.addWidget(self.lon_input)
-        controls_layout.addWidget(self.add_marker_button)
-        controls_layout.addWidget(self.zoom_in_button)
-        controls_layout.addWidget(self.zoom_out_button)
-        layout.addLayout(controls_layout)
+        # GPS 시리얼 연결 설정
+        self.port = '/dev/ttyTHS1'  # GPS 모듈의 시리얼 포트로 변경
+        self.ser = serial.Serial(self.port, baudrate=115200, timeout=5)
 
-        layout.addWidget(self.map_view)
-        layout.addWidget(self.status_label)
+        # 버튼 클릭 이벤트 연결
+        self.map_expand_btn.clicked.connect(lambda: self.execute_js("map.setZoom(map.getZoom() + 1);"))
+        self.map_reduce_btn.clicked.connect(lambda: self.execute_js("map.setZoom(map.getZoom() - 1);"))
+        self.map_record_start_btn.clicked.connect(self.start_logging)
+        self.map_record_stop_btn.clicked.connect(self.stop_logging)
 
-        self.add_marker_button.clicked.connect(self.add_marker)
-        self.zoom_in_button.clicked.connect(lambda: self.execute_js("map.setZoom(map.getZoom() + 1);"))
-        self.zoom_out_button.clicked.connect(lambda: self.execute_js("map.setZoom(map.getZoom() - 1);"))
+        # 위치 기록 주기 변경 이벤트 연결
+        self.input_map_period.valueChanged.connect(self.update_logging_interval)
 
     def load_map(self):
         html_content = self.get_map_html()
         with open('map.html', 'w') as f:
             f.write(html_content)
 
-        file_path = os.path.abspath("map.html")
-        print("HTML file path:", file_path)  # 파일 경로를 출력하여 확인
-        self.map_view.setUrl(QUrl.fromLocalFile(file_path))
+        # 로컬 서버에서 파일을 서빙
+        self.map_view.setUrl(QUrl(f"http://localhost:8001/map.html"))  # setUrl 사용
 
     def get_map_html(self):
         return f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Google Maps</title>
-            <style>
-                body, html {{
-                    height: 100%;
-                    margin: 0;
-                    padding: 0;
-                }}
-                #map {{
-                    height: 100%;
-                }}
-            </style>
-            <script>
-                let map;
-                let polyline;
-                let path = [];
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Google Maps</title>
+                    <style>
+                        body, html {{
+                            height: 100%;
+                            margin: 0;
+                            padding: 0;
+                        }}
+                        #map {{
+                            height: 100%;
+                        }}
+                    </style>
+                    <script>
+                        let map;
+                        let polyline;
+                        let path = [];
 
-                function initMap() {{
-                    map = new google.maps.Map(document.getElementById('map'), {{
-                        center: {{lat: 37.5665, lng: 126.9780}},  // 서울의 위도와 경도
-                        zoom: 8  // 더 작은 줌 레벨로 설정하여 지도를 축소
-                    }});
+                        function initMap() {{
+                            map = new google.maps.Map(document.getElementById('map'), {{
+                                center: {{lat: 0, lng: 0}},  // 초기 중심을 위도 0, 경도 0으로 설정
+                                zoom: 2
+                            }});
 
-                    polyline = new google.maps.Polyline({{
-                        path: path,
-                        geodesic: true,
-                        strokeColor: '#FF0000',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 2
-                    }});
-                    polyline.setMap(map);
-                }}
+                            polyline = new google.maps.Polyline({{
+                                path: path,
+                                geodesic: true,
+                                strokeColor: '#FF0000',
+                                strokeOpacity: 1.0,
+                                strokeWeight: 2
+                            }});
+                            polyline.setMap(map);
+                        }}
 
-                function addMarker(lat, lng) {{
-                    var position = new google.maps.LatLng(lat, lng);
-                    var marker = new google.maps.Marker({{
-                        position: position,
-                        map: map
-                    }});
-                    path.push(position);
-                    polyline.setPath(path);
-                }}
-            </script>
-        </head>
-        <body>
-            <div id="map"></div>
-            <script src="https://maps.googleapis.com/maps/api/js?key={self.api_key}&callback=initMap" async defer></script>
-        </body>
-        </html>
-        """
+                        function addMarker(lat, lng, isFirst) {{
+                            var position = new google.maps.LatLng(lat, lng);
+                            if (isFirst) {{
+                                var marker = new google.maps.Marker({{
+                                    position: position,
+                                    map: map,
+                                    icon: {{
+                                        path: google.maps.SymbolPath.CIRCLE,
+                                        scale: 8,
+                                        fillColor: "#00F",
+                                        fillOpacity: 1,
+                                        strokeWeight: 2
+                                    }}
+                                }});
+                            }}
+                            path.push(position);
+                            polyline.setPath(path);
+                            map.setCenter(position);  // 중심을 새 마커 위치로 이동
+                        }}
+                    </script>
+                </head>
+                <body>
+                    <div id="map"></div>
+                    <script src="https://maps.googleapis.com/maps/api/js?key={self.api_key}&callback=initMap" async defer></script>
+                </body>
+                </html>
+                """
 
     @pyqtSlot()
-    def add_marker(self):
+    def read_gps_data(self):
         try:
-            lat = float(self.lat_input.text())
-            lon = float(self.lon_input.text())
-            self.execute_js(f"addMarker({lat}, {lon});")
-            self.status_label.setText(f"Marker added at ({lat}, {lon}) and path recorded.")
-        except ValueError:
-            self.status_label.setText("Invalid input. Please enter valid latitude and longitude.")
+            line = self.ser.readline().decode('utf-8')
+            if line.startswith('$GPGGA'):
+                msg = pynmea2.parse(line)
+                if msg.latitude == 0.0 and msg.longitude == 0.0:
+                    return  # 무효한 위치 데이터 필터
+                lat = msg.latitude
+                lon = msg.longitude
+                if msg.lat_dir == 'S':
+                    lat = -lat
+                if msg.lon_dir == 'W':
+                    lon = -lon
+                self.add_marker(lat, lon)
+                self.latitude_label.setText(f"{lat}")
+                self.longitude_label.setText(f" {lon}")
+
+                # 항상 기록하는 CSV 파일에 저장
+                self.save_to_csv(lat, lon, 'gps_data_always.csv')
+
+                # 시작/정지 버튼을 통해 기록하는 CSV 파일에 저장
+                if self.is_logging:
+                    self.save_to_csv(lat, lon, 'gps_data_logging.csv')
+        except serial.SerialException:
+            self.map_status_label.setText("시리얼 통신 오류!")
+        except pynmea2.nmea.ParseError:
+            self.map_status_label.setText("NMEA 데이터 파싱 실패!")
+
+    def add_marker(self, lat, lon):
+        if not self.first_marker_added:
+            self.execute_js(f"addMarker({lat}, {lon}, true);")  # 처음 위치 마커 추가
+            self.first_marker_added = True
+        else:
+            self.execute_js(f"addMarker({lat}, {lon}, false);")  # 이후 위치는 선으로 추가
 
     def execute_js(self, script):
         self.map_view.page().runJavaScript(script)
 
-if __name__ == "__main__":
+    def init_csv(self):
+        # 항상 기록하는 CSV 파일 초기화
+        with open('gps_data_always.csv', 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['Latitude', 'Longitude'])
+
+        # 시작/정지 버튼을 통해 기록하는 CSV 파일 초기화
+        with open('gps_data_logging.csv', 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['Latitude', 'Longitude'])
+
+    def save_to_csv(self, lat, lon, filename):
+        # 지정된 CSV 파일에 GPS 데이터 저장
+        with open(filename, 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow("위도 : ", [lat], "경도", [lon])
+
+    def start_logging(self):
+        self.is_logging = True
+        self.map_status_label.setText("데이터 기록 시작")
+
+    def stop_logging(self):
+        self.is_logging = False
+        self.map_status_label.setText("데이터 기록 정지")
+
+    def update_logging_interval(self):
+        # 위치 기록 주기 업데이트
+        interval = self.input_map_period.value() * 1000  # 밀리초 단위로 변환
+        self.timer.setInterval(interval)
+
+    def visualize_data(self):
+        # CSV 파일에서 데이터 읽기
+        latitudes = []
+        longitudes = []
+        with open('gps_data_logging.csv', 'r') as csvfile:
+            csvreader = csv.reader(csvfile)
+            next(csvreader)  # 헤더 건너뛰기
+            for row in csvreader:
+                latitudes.append(float(row[0]))
+                longitudes.append(float(row[1]))
+
+        # ----- Lidar -----------------------------------------------
+        # Lidar Setup
+        try:
+            self.data_queue = Queue()
+            self.lidar = RPLidar(PORT_NAME)
+            self.slam_view = self.findChild(pg.PlotWidget, "slam_view")
+
+            self.slam_figure = Figure()
+            self.slam_canvas = FigureCanvas(self.slam_figure)
+            self.slam_layout = QVBoxLayout(self.slam_view)
+            self.slam_layout.addWidget(self.slam_canvas)
+
+            if self.check_lidar_connection():
+                self.lidar.start_motor()
+                self.start_lidar_thread()  # LiDAR 스레드 시작
+                self.timer = QTimer()
+                self.timer.timeout.connect(self.process_lidar_data)
+                self.timer.start(100)  # 100ms마다 데이터 처리
+            else:
+                print("LiDAR not connected: Thread will not start.")
+        except Exception as e:
+            print(f"Failed to initialize LiDAR: {e}")
+            self.lidar = None
+            self.lidar_connect_label.setText("Disconnect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(237,66,69);")
+
+    # ------ SendCmd -------------------------------------
+    def sendCmd(self):
+        self.myunitree_go1.sendCmd()
+
+        self.data_SOC = self.myunitree_go1.hstate_bms_SOC
+        self.data_mode = self.myunitree_go1.hstate_mode
+        self.data_gaitType = self.myunitree_go1.hstate_gaitType
+        self.data_velocity = self.myunitree_go1.hstate_velocity
+        # self.data_position_hstate = self.myunitree_go1.hstate_position
+
+        self.update_label()
+
+    # ------데이터 입력 이벤트------------
+    def vel_0_value_changed(self, value):
+        self.velocity_0_Front_value = value
+        self.velocity_0_Back_value = -value
+
+    def vel_1_value_changed(self, value):
+        self.velocity_1_Left_value = value
+        self.velocity_1_Right_value = -value
+
+    def yawspeed_value_changed(self, value):
+        self.yawspeed_value_L = value
+        self.yawspeed_value_R = -value
+
+    # ------버튼 클릭 이벤트--------------
+    def Click_Stop_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Robot_force_Stop()
+
+    def Click_UP_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_STAND_UP()
+
+    def Click_Down_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_STAND_DOWN()
+
+    def Click_Damping_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_Damping()
+
+    def Click_Recovery_Btn(self):
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Change_Mode_to_Recovery_Stand()
+
+    def set_key(self, key, value, button, style):
+        self.pressed_keys[key] = value
+        button.setStyleSheet(style if value else "background-color: rgb(255, 255, 255);")
+        if self.myunitree_go1.connect_flag:
+            self.update_movement()
+
+    def update_movement(self):
+        key_input_vel0 = 0
+        key_input_vel1 = 0
+        if self.pressed_keys['w']:
+            key_input_vel0 = self.velocity_0_Front_value
+        if self.pressed_keys['s']:
+            key_input_vel0 = self.velocity_0_Back_value
+        if self.pressed_keys['a']:
+            key_input_vel1 = self.velocity_1_Left_value
+        if self.pressed_keys['d']:
+            key_input_vel1 = self.velocity_1_Right_value
+
+        # 장애물이 감지된 방향의 속도를 0으로 설정
+        if self.obstacle_detected['Front']:
+            if key_input_vel0 > 0:
+                key_input_vel0 = 0
+        if self.obstacle_detected['Back']:
+            if key_input_vel0 < 0:
+                key_input_vel0 = 0
+        if self.obstacle_detected['Left']:
+            if key_input_vel1 > 0:
+                key_input_vel1 = 0
+        if self.obstacle_detected['Right']:
+            if key_input_vel1 < 0:
+                key_input_vel1 = 0
+        if self.obstacle_detected['Front-Right']:
+            if key_input_vel0 > 0 and key_input_vel1 < 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Front-Left']:
+            if key_input_vel0 > 0 and key_input_vel1 > 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Back-Right']:
+            if key_input_vel0 < 0 and key_input_vel1 < 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+        if self.obstacle_detected['Back-Left']:
+            if key_input_vel0 < 0 and key_input_vel1 > 0:
+                key_input_vel0 = 0
+                key_input_vel1 = 0
+
+        # 현재 움직임 상태 업데이트
+        self.move_velocity_0_value = key_input_vel0
+        self.move_velocity_1_value = key_input_vel1
+        self.myunitree_go1.Move_mult(self.move_velocity_0_value, self.move_velocity_1_value)
+
+    def press_TurnL_key_callback(self, event):
+        self.Turn_L_btn.setStyleSheet("background-color: rgb(235, 69, 158);")
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_RL(self.yawspeed_value_L)
+
+    def press_TurnR_key_callback(self, event):
+        self.Turn_R_btn.setStyleSheet("background-color: rgb(235, 69, 158);")
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_RL(self.yawspeed_value_R)
+
+    def release_TurnL_key_callback(self, event):
+        self.Turn_L_btn.setStyleSheet("background:rgb(153, 170, 181);" "color:rgb(255, 255, 255);")
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_Stop()
+
+    def release_TurnR_key_callback(self, event):
+        self.Turn_R_btn.setStyleSheet("background:rgb(153, 170, 181);" "color:rgb(255, 255, 255);")
+        if self.myunitree_go1.connect_flag:
+            self.myunitree_go1.Turn_Stop()
+
+    # ------ 콤보 박스 메소드 --------------
+    def Change_mode_combobox(self, index):
+        selected_item = self.Mode_ComboBox.currentText()
+        print(f"Selected Mode: {selected_item}")
+
+        if selected_item == "IDLE (0)":
+            self.myunitree_go1.Change_Mode_to_IDLE()
+        elif selected_item == "Force Stand (1)":
+            self.myunitree_go1.Change_Mode_to_Force_Stand()
+        elif selected_item == "Vel Walk (2)":
+            self.myunitree_go1.Change_Mode_to_VEL_WALK()
+        elif selected_item == "Stand Down (5)":
+            self.myunitree_go1.Change_Mode_to_STAND_DOWN()
+        elif selected_item == "Stand Up (6)":
+            self.myunitree_go1.Change_Mode_to_STAND_UP()
+
+    def Change_gaittype_comboBox(self, index):
+        selected_item = self.GaitType_ComboBox.currentText()
+        print(f"Selected GaitType: {selected_item}")
+
+        if selected_item == "IDLE (0)":
+            self.myunitree_go1.Change_GaitType_to_IDLE()
+        elif selected_item == "Trot (1)":
+            self.myunitree_go1.Change_GaitType_to_Trot()
+        elif selected_item == "Climb Stair (2)":
+            self.myunitree_go1.Change_GaitType_to_CLIMB_STAIR()
+        elif selected_item == "Trot Obstacle (3)":
+            self.myunitree_go1.Change_GaitType_to_TROT_OBSTACLE()
+
+    # ---------------------------------------------------------------------
+    def udp_connect(self):
+        try:
+            self.myunitree_go1.connect()
+            h1 = Tread1(self)
+            h1.start()
+        except Exception as e:
+            print("udp_connect에서 예외 발생:")
+            traceback.print_exc()
+
+    def udp_disconnect(self):
+        try:
+            self.myunitree_go1.disconnect()
+            h1 = Tread1(self)
+            h1.start()
+        except Exception as e:
+            print("udp_disconnect에서 예외 발생:")
+            traceback.print_exc()
+
+    def update_label(self):
+        self.SOC_label.setText("{:.1f}".format(self.data_SOC))
+        self.Mode_label.setText("{:.1f}".format(self.data_mode))
+        self.GaitType_label.setText("{:.1f}".format(self.data_gaitType))
+
+        if self.myunitree_go1.connect_flag:
+            self.State_Connect_label.setText("Connect")
+            self.State_Connect_label.setStyleSheet("color: rgb(87,242,135);")
+        else:
+            self.State_Connect_label.setText("Disconnect")
+            self.State_Connect_label.setStyleSheet("color: rgb(237,66,69);")
+
+        if (abs(self.data_velocity[0]) < 0.05
+                and abs(self.data_velocity[1]) < 0.05):
+            self.Move_State_label.setText("STOP")
+            self.Move_State_label.setStyleSheet("color: rgb(237,66,69);")
+        else:
+            self.Move_State_label.setText("Moving..")
+            self.Move_State_label.setStyleSheet("color: rgb(254,231,92);")
+
+    def update_line(self, scan):
+        self.slam_figure.clear()
+        polar_ax = self.slam_figure.add_subplot(111, projection='polar')
+        polar_ax.set_theta_zero_location('N')
+        polar_ax.set_theta_direction(-1)
+        polar_ax.set_rmax(DMAX)
+        polar_ax.grid(True)
+
+        offsets = np.array([(np.radians(meas[1]), meas[2]) for meas in scan])
+        colors = np.array(['red' if meas[2] < 500 else 'grey' for meas in scan])
+        polar_ax.scatter(offsets[:, 0], offsets[:, 1], s=5, color=colors, lw=0)
+
+        self.detect_obstacles(scan)
+        self.slam_canvas.draw()
+
+    def detect_obstacles(self, scan):
+        # 거리 500mm 이하의 측정값 필터링
+        close_points = np.array([(meas[1], meas[2]) for meas in scan if meas[2] < 500])
+
+        if close_points.size == 0:
+            self.obstacle_detected = {
+                'Front': False,
+                'Back': False,
+                'Left': False,
+                'Right': False,
+                'Front-Right': False,
+                'Front-Left': False,
+                'Back-Right': False,
+                'Back-Left': False
+            }
+            self.obstacle_distances = {
+                'Front': None,
+                'Back': None,
+                'Left': None,
+                'Right': None,
+                'Front-Right': None,
+                'Front-Left': None,
+                'Back-Right': None,
+                'Back-Left': None
+            }
+            self.obstacle_label.setText("0")
+            self.update_obstacle_colors()
+            self.update_obstacle_distances()
+            return
+
+        angles = close_points[:, 0]
+        distances = close_points[:, 1]
+
+        # 클러스터링 알고리즘 적용
+        clusters = []
+        current_cluster = [close_points[0]]
+
+        for point in close_points[1:]:
+            if np.abs(point[0] - current_cluster[-1][0]) < 15:
+                current_cluster.append(point)
+            else:
+                if len(current_cluster) >= 10:
+                    clusters.append(np.array(current_cluster))
+                current_cluster = [point]
+
+        if len(current_cluster) >= 5:
+            clusters.append(np.array(current_cluster))
+
+        self.obstacle_detected = {
+            'Front': False,
+            'Back': False,
+            'Left': False,
+            'Right': False,
+            'Front-Right': False,
+            'Front-Left': False,
+            'Back-Right': False,
+            'Back-Left': False
+        }
+
+        self.obstacle_distances = {
+            'Front': None,
+            'Back': None,
+            'Left': None,
+            'Right': None,
+            'Front-Right': None,
+            'Front-Left': None,
+            'Back-Right': None,
+            'Back-Left': None
+        }
+
+        for cluster in clusters:
+            avg_angle = np.mean(cluster[:, 0])
+            avg_distance = np.mean(cluster[:, 1])
+            direction = self.determine_direction(avg_angle)
+            self.obstacle_detected[direction] = True
+            self.obstacle_distances[direction] = avg_distance
+
+        self.obstacle_label.setText(f"{len(clusters)}개")
+        self.update_obstacle_colors()
+        self.update_obstacle_distances()
+
+    def update_obstacle_colors(self):
+        color_map = {
+            'Front': self.obstacle_front_frame,
+            'Back': self.obstacle_back_frame,
+            'Left': self.obstacle_left_frame,
+            'Right': self.obstacle_right_frame,
+            'Front-Right': self.obstacle_front_right_frame,
+            'Front-Left': self.obstacle_front_left_frame,
+            'Back-Right': self.obstacle_back_right_frame,
+            'Back-Left': self.obstacle_back_left_frame
+        }
+
+        for direction, frame in color_map.items():
+            if self.obstacle_detected[direction]:
+                frame.setStyleSheet("background-color: rgb(237,66,69);")
+            else:
+                frame.setStyleSheet("background-color: rgb(87, 242, 135);")
+
+    def update_obstacle_distances(self):
+        distance_map = {
+            'Front': self.obstacle_front_label,
+            'Back': self.obstacle_back_label,
+            'Left': self.obstacle_left_label,
+            'Right': self.obstacle_right_label,
+            'Front-Right': self.obstacle_front_right_label,
+            'Front-Left': self.obstacle_front_left_label,
+            'Back-Right': self.obstacle_back_right_label,
+            'Back-Left': self.obstacle_back_left_label
+        }
+
+        for direction, label in distance_map.items():
+            if self.obstacle_distances[direction] is not None:
+                label.setText(f"{self.obstacle_distances[direction]:.1f} mm")
+            else:
+                label.setText(" - ")
+
+    def determine_direction(self, angle):
+        if 337.5 <= angle or angle < 22.5:
+            return "Front"
+        elif 22.5 <= angle < 67.5:
+            return "Front-Right"
+        elif 67.5 <= angle < 112.5:
+            return "Right"
+        elif 112.5 <= angle < 157.5:
+            return "Back-Right"
+        elif 157.5 <= angle < 202.5:
+            return "Back"
+        elif 202.5 <= angle < 247.5:
+            return "Back-Left"
+        elif 247.5 <= angle < 292.5:
+            return "Left"
+        elif 292.5 <= angle < 337.5:
+            return "Front-Left"
+
+    def check_lidar_connection(self):
+        try:
+            info = self.lidar.get_info()
+            print(f"Lidar Info: {info}")
+            self.lidar_connect_label.setText("Connect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(87,242,135);")
+            return True
+        except Exception as e:
+            print(f"Failed to connect to Lidar: {e}")
+            self.lidar_connect_label.setText("Disconnect")
+            self.lidar_connect_label.setStyleSheet("color: rgb(237,66,69);")
+            return False
+
+    def process_lidar_data(self):
+        if not self.data_queue.empty():
+            scan = self.data_queue.get()
+            self.update_line(scan)
+
+    def start_lidar_thread(self):
+        if self.lidar is not None:
+            self.lidar_thread = LidarThread(self.lidar, self.data_queue)
+            self.lidar_thread.start()
+
+    def closeEvent(self, event):
+        self.lidar.stop()
+        self.lidar.stop_motor()
+        self.lidar.disconnect()
+        super().closeEvent(event)
+
+
+if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = MapApp()
+    window = MyWindow()
     window.show()
-    sys.exit(app.exec_())
+    app.exec_()

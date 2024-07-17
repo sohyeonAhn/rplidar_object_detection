@@ -1,53 +1,63 @@
 
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Google Maps</title>
-            <style>
-                body, html {
-                    height: 100%;
-                    margin: 0;
-                    padding: 0;
-                }
-                #map {
-                    height: 100%;
-                }
-            </style>
-            <script>
-                let map;
-                let polyline;
-                let path = [];
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Google Maps</title>
+                    <style>
+                        body, html {
+                            height: 100%;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        #map {
+                            height: 100%;
+                        }
+                    </style>
+                    <script>
+                        let map;
+                        let polyline;
+                        let path = [];
 
-                function initMap() {
-                    map = new google.maps.Map(document.getElementById('map'), {
-                        center: {lat: 37.5665, lng: 126.9780},  // 서울의 위도와 경도
-                        zoom: 8  // 더 작은 줌 레벨로 설정하여 지도를 축소
-                    });
+                        function initMap() {
+                            map = new google.maps.Map(document.getElementById('map'), {
+                                center: {lat: 0, lng: 0},  // 초기 중심을 위도 0, 경도 0으로 설정
+                                zoom: 2
+                            });
 
-                    polyline = new google.maps.Polyline({
-                        path: path,
-                        geodesic: true,
-                        strokeColor: '#FF0000',
-                        strokeOpacity: 1.0,
-                        strokeWeight: 2
-                    });
-                    polyline.setMap(map);
-                }
+                            polyline = new google.maps.Polyline({
+                                path: path,
+                                geodesic: true,
+                                strokeColor: '#FF0000',
+                                strokeOpacity: 1.0,
+                                strokeWeight: 2
+                            });
+                            polyline.setMap(map);
+                        }
 
-                function addMarker(lat, lng) {
-                    var position = new google.maps.LatLng(lat, lng);
-                    var marker = new google.maps.Marker({
-                        position: position,
-                        map: map
-                    });
-                    path.push(position);
-                    polyline.setPath(path);
-                }
-            </script>
-        </head>
-        <body>
-            <div id="map"></div>
-            <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBUBAhu3jl8NIC54-BXqEggLmJo-YNCIcw&callback=initMap" async defer></script>
-        </body>
-        </html>
-        
+                        function addMarker(lat, lng, isFirst) {
+                            var position = new google.maps.LatLng(lat, lng);
+                            if (isFirst) {
+                                var marker = new google.maps.Marker({
+                                    position: position,
+                                    map: map,
+                                    icon: {
+                                        path: google.maps.SymbolPath.CIRCLE,
+                                        scale: 8,
+                                        fillColor: "#00F",
+                                        fillOpacity: 1,
+                                        strokeWeight: 2
+                                    }
+                                });
+                            }
+                            path.push(position);
+                            polyline.setPath(path);
+                            map.setCenter(position);  // 중심을 새 마커 위치로 이동
+                        }
+                    </script>
+                </head>
+                <body>
+                    <div id="map"></div>
+                    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBUBAhu3jl8NIC54-BXqEggLmJo-YNCIcw&callback=initMap" async defer></script>
+                </body>
+                </html>
+                
