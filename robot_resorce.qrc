@@ -7,8 +7,11 @@
     <file>picture/go1_major_dimensions-removebg-preview.png</file>
   </qresource>
   <qresource prefix="seed">
-    <file>picture/icons8-fertilizer-bag-24.png</file>
-    <file>picture/icons8-씨앗과-함께-종이-가방-50.png</file>
+    <file>picture/icons8-닌텐도-50.png</file>
+    <file>picture/icons8-backward-96.png</file>
+    <file>picture/icons8-빠른-96.png</file>
+    <file>picture/icons8-빠른-모드-해제-100.png</file>
+    <file>picture/icons8-플래시에-100.png</file>
     <file>picture/icons8-open-32.png</file>
     <file>picture/icons8-자물쇠-50.png</file>
   </qresource>

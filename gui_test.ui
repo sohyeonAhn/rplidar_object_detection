@@ -931,72 +931,12 @@ QPushButton:pressed {
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
-     <widget class="QLabel" name="label_27">
+     <widget class="QLabel" name="label_28">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>120</y>
-        <width>61</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>에스코어 드림 5 Medium</family>
-        <pointsize>9</pointsize>
-        <weight>50</weight>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string>Speed :</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-     <widget class="QDoubleSpinBox" name="spreader_input_speed">
-      <property name="geometry">
-       <rect>
-        <x>70</x>
-        <y>120</y>
-        <width>81</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>에스코어 드림 4 Regular</family>
-        <pointsize>9</pointsize>
-        <weight>50</weight>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="minimum">
-       <double>0.000000000000000</double>
-      </property>
-      <property name="maximum">
-       <double>200.000000000000000</double>
-      </property>
-      <property name="singleStep">
-       <double>10.000000000000000</double>
-      </property>
-      <property name="value">
-       <double>0.000000000000000</double>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_28">
-      <property name="geometry">
-       <rect>
-        <x>20</x>
-        <y>160</y>
-        <width>101</width>
+        <width>51</width>
         <height>25</height>
        </rect>
       </property>
@@ -1012,7 +952,7 @@ QPushButton:pressed {
        <string notr="true">color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
-       <string>Spreader On :</string>
+       <string>On :</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -1021,9 +961,9 @@ QPushButton:pressed {
      <widget class="QPushButton" name="seed_spreader_on_btn">
       <property name="geometry">
        <rect>
-        <x>120</x>
-        <y>160</y>
-        <width>41</width>
+        <x>60</x>
+        <y>120</y>
+        <width>25</width>
         <height>25</height>
        </rect>
       </property>
@@ -1039,7 +979,7 @@ QPushButton:pressed {
        <bool>false</bool>
       </property>
       <property name="styleSheet">
-       <string notr="true">image: url(:/seed/picture/icons8-씨앗과-함께-종이-가방-50.png);</string>
+       <string notr="true">image: url(:/seed/picture/icons8-플래시에-100.png);</string>
       </property>
       <property name="text">
        <string/>
@@ -1048,9 +988,9 @@ QPushButton:pressed {
      <widget class="QLabel" name="label_29">
       <property name="geometry">
        <rect>
-        <x>20</x>
-        <y>190</y>
-        <width>101</width>
+        <x>90</x>
+        <y>120</y>
+        <width>51</width>
         <height>25</height>
        </rect>
       </property>
@@ -1066,7 +1006,7 @@ QPushButton:pressed {
        <string notr="true">color: rgb(255, 255, 255);</string>
       </property>
       <property name="text">
-       <string>Spreader Off :</string>
+       <string>Off :</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -1075,9 +1015,9 @@ QPushButton:pressed {
      <widget class="QPushButton" name="seed_spreader_off_btn">
       <property name="geometry">
        <rect>
-        <x>120</x>
-        <y>190</y>
-        <width>41</width>
+        <x>140</x>
+        <y>120</y>
+        <width>25</width>
         <height>25</height>
        </rect>
       </property>
@@ -1093,7 +1033,88 @@ QPushButton:pressed {
        <bool>false</bool>
       </property>
       <property name="styleSheet">
-       <string notr="true">image: url(:/seed/picture/icons8-fertilizer-bag-24.png);</string>
+       <string notr="true">image: url(:/seed/picture/icons8-빠른-모드-해제-100.png);</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="seed_spreader_normalspeed_btn">
+      <property name="geometry">
+       <rect>
+        <x>80</x>
+        <y>170</y>
+        <width>35</width>
+        <height>35</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>12</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">image: url(:/seed/picture/icons8-닌텐도-50.png);</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="seed_spreader_highpeed_btn">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>170</y>
+        <width>35</width>
+        <height>35</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>12</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">image: url(:/seed/picture/icons8-빠른-96.png);</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="seed_spreader_lowspeed_btn">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>170</y>
+        <width>35</width>
+        <height>35</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <family>Arial</family>
+        <pointsize>12</pointsize>
+        <weight>50</weight>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="autoFillBackground">
+       <bool>false</bool>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">image: url(:/seed/picture/icons8-backward-96.png);</string>
       </property>
       <property name="text">
        <string/>
@@ -2767,8 +2788,7 @@ QPushButton:pressed {
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);
-background-color: rgb(235, 69, 158);</string>
+     <string notr="true"/>
     </property>
    </widget>
    <widget class="QWidget" name="ir_camera_view" native="true">
@@ -2781,8 +2801,7 @@ background-color: rgb(235, 69, 158);</string>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(255, 255, 255);
-background-color: rgb(114, 137, 218);</string>
+     <string notr="true">background-color: rgb(114, 137, 218);</string>
     </property>
    </widget>
    <widget class="QWidget" name="lepton_camera_view" native="true">
