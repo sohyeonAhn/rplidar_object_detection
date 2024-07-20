@@ -14,6 +14,7 @@ from PyQt5.QtWebEngineWidgets import *
 import os
 import subprocess
 import threading
+import paramiko
 import pyqtgraph as pg
 from queue import Queue
 from myunitree_robot_go1 import myunitree
@@ -26,11 +27,17 @@ import robot_resorce_rc
 # GUI 이미지 넣기 위한 코드
 # terminal: pyrcc5 -o robot_resorce_rc.py robot_resorce.qrc
 
-PORT_NAME = 'COM3'
+PORT_NAME = '/dev/ttyUSB0'
 DMAX = 1000  # 최대 거리 설정 (mm)
 
+# 라즈베리 파이의 SSH 접속 정보
+raspberry_pi_ip = '192.168.208.188'  # 라즈베리 파이의 IP 주소로 변경하세요
+username = 'pi'  # 라즈베리 파이의 사용자 이름
+password = '48324832jh!'  # 라즈베리 파이의 비밀번호
+python_script_path = '/home/pi/Desktop/raspProjects/servoDcMotorJetsonTest.py'  # 라즈베리 파이에서 서보 모터 제어 스크립트 경로
 
-class Tread1(QThread):
+
+class MainTread(QThread):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
@@ -41,7 +48,7 @@ class Tread1(QThread):
                 time.sleep(0.01)
                 self.parent.sendCmd()
         except Exception as e:
-            print("Tread1에서 예외 발생:")
+            print("MainTread에서 예외 발생:")
             traceback.print_exc()
 
 
@@ -55,9 +62,107 @@ class LidarThread(QThread):
         for scan in self.lidar.iter_scans():
             self.data_queue.put(scan)
 
+
+class GPSThread(QThread):
+    gps_data_signal = pyqtSignal(float, float)  # Signal to emit GPS data
+
+    def __init__(self, port, api_key, logging_interval=1000):
+        super().__init__()
+        self.port = port
+        self.api_key = api_key
+        self.logging_interval = logging_interval
+        self.is_logging = False
+        self.init_csv()
+
+        self.min_accuracy = 5  # 최소 정확도 설정
+        self.history_size = 5  # 이동 평균 적용을 위한 히스토리 크기
+        self.lat_history = []
+        self.lon_history = []
+
+    def run(self):
+        try:
+            self.ser = serial.Serial(self.port, baudrate=115200, timeout=5)
+            while True:
+                line = self.ser.readline().decode('utf-8')
+                if line.startswith('$GPGGA'):
+                    msg = pynmea2.parse(line)
+                    lat = msg.latitude
+                    lon = msg.longitude
+                    if msg.lat_dir == 'S':
+                        lat = -lat
+                    if msg.lon_dir == 'W':
+                        lon = -lon
+
+                    # 이동 평균 적용
+                    avg_lat, avg_lon = self.apply_moving_average(lat, lon)
+
+                    self.gps_data_signal.emit(avg_lat, avg_lon)
+                    self.save_to_csv(lat, lon, 'gps_data_always.csv')
+                    if self.is_logging:
+                        self.save_to_csv(lat, lon, 'gps_data_logging.csv')
+                time.sleep(self.logging_interval / 1000.0)
+        except Exception as e:
+            print(f"GPS Thread Error: {e}")
+
+    def apply_moving_average(self, lat, lon):
+        self.lat_history.append(lat)
+        self.lon_history.append(lon)
+
+        if len(self.lat_history) > self.history_size:
+            self.lat_history.pop(0)
+            self.lon_history.pop(0)
+
+        avg_lat = sum(self.lat_history) / len(self.lat_history)
+        avg_lon = sum(self.lon_history) / len(self.lon_history)
+
+        return avg_lat, avg_lon
+
+    def init_csv(self):
+        with open('gps_data_always.csv', 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['Latitude', 'Longitude'])
+        with open('gps_data_logging.csv', 'w', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(['Latitude', 'Longitude'])
+
+    def save_to_csv(self, lat, lon, filename):
+        with open(filename, 'a', newline='') as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow([lat, lon])
+
+    def start_logging(self):
+        self.is_logging = True
+
+    def stop_logging(self):
+        self.is_logging = False
+
+    def set_logging_interval(self, interval):
+        self.logging_interval = interval
+
+
 class CustomWebEnginePage(QWebEnginePage):
     def javaScriptConsoleMessage(self, level, message, line_number, source_id):
         print(f"콘솔 메시지: {message} (줄 {line_number}): {source_id}")
+
+
+def send_command(command):
+    try:
+        # SSH 클라이언트 생성
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(raspberry_pi_ip, username=username, password=password)
+
+        # 원격으로 파이썬 스크립트 실행
+        stdin, stdout, stderr = client.exec_command(f'python3 {python_script_path} {command}')
+
+        # 명령 실행 결과 출력
+        print("Current Status : ", command)
+
+        # SSH 연결 종료
+        client.close()
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 
 class MyWindow(QMainWindow):
@@ -146,6 +251,9 @@ class MyWindow(QMainWindow):
         self.Move_State_label = self.findChild(QLabel, "operation_state_label")
         self.obstacle_label = self.findChild(QLabel, "obstacle_label")
         self.lidar_connect_label = self.findChild(QLabel, "lidar_connect_label")
+        self.map_status_label = self.findChild(QLabel, "map_status_label")
+        self.latitude_label = self.findChild(QLabel, "latitude_label")
+        self.longitude_label = self.findChild(QLabel, "longitude_label")
         # ------ ComboBox ---------------------------------------------------
         self.Mode_ComboBox = self.findChild(QComboBox, "mode_comboBox")
         self.Mode_ComboBox.currentIndexChanged.connect(self.Change_mode_combobox)
@@ -179,35 +287,22 @@ class MyWindow(QMainWindow):
             self.lidar_connect_label.setStyleSheet("color: rgb(237,66,69);")
 
         # ----------------------GPS-----------------------------------
-        # Google Maps API Key
         self.api_key = "AIzaSyBUBAhu3jl8NIC54-BXqEggLmJo-YNCIcw"
+        self.port = '/dev/ttyTHS1'  # GPS 모듈의 시리얼 포트로 변경
 
-        # UI 요소 초기화
+        self.gps_thread = GPSThread(self.port, self.api_key)
+        self.gps_thread.gps_data_signal.connect(self.update_gps_data)
+        self.gps_thread.start()
+
+        # QWebEngineView 설정
         self.map_view_widget = self.findChild(QWidget, "map_view")
         self.map_view = QWebEngineView()
-        self.map_view.setPage(
-            CustomWebEnginePage(self.map_view))  # CustomWebEnginePage 클래스에 맞는 인스턴스를 생성하여 setPage 메서드에 전달
+        self.map_view.setPage(CustomWebEnginePage(self.map_view))
 
-        # QVBoxLayout을 사용하여 map_view_widget에 QWebEngineView 추가
         layout = QVBoxLayout(self.map_view_widget)
         layout.addWidget(self.map_view)
 
-        self.is_logging = False
-        self.first_marker_added = False
-
         self.load_map()
-
-        # 주기적으로 GPS 데이터를 읽기 위한 타이머 설정
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.read_gps_data)
-        self.timer.start(1000)  # 1초마다 GPS 데이터 읽기
-
-        # CSV 파일 초기화
-        self.init_csv()
-
-        # GPS 시리얼 연결 설정
-        self.port = '/dev/ttyTHS1'  # GPS 모듈의 시리얼 포트로 변경
-        self.ser = serial.Serial(self.port, baudrate=115200, timeout=5)
 
         # 버튼 클릭 이벤트 연결
         self.map_expand_btn.clicked.connect(lambda: self.execute_js("map.setZoom(map.getZoom() + 1);"))
@@ -218,6 +313,24 @@ class MyWindow(QMainWindow):
         # 위치 기록 주기 변경 이벤트 연결
         self.input_map_period.valueChanged.connect(self.update_logging_interval)
 
+        # 서보 모터 제어 관련 요소 초기화
+        self.seed_bucket_open_btn = self.findChild(QPushButton, 'seed_bucket_open_btn')
+        self.seed_bucket_open_btn.clicked.connect(self.start_servo)
+        self.seed_bucket_close_btn = self.findChild(QPushButton, 'seed_bucket_close_btn')
+        self.seed_bucket_close_btn.clicked.connect(self.stop_servo)
+
+        # DC 모터 제어 관련 요소 초기화
+        self.seed_spreader_on_btn = self.findChild(QPushButton, 'seed_spreader_on_btn')
+        self.seed_spreader_on_btn.clicked.connect(self.dc_motor_on)
+        self.seed_spreader_off_btn = self.findChild(QPushButton, 'seed_spreader_off_btn')
+        self.seed_spreader_off_btn.clicked.connect(self.dc_motor_off)
+        self.seed_spreader_lowspeed_btn = self.findChild(QPushButton, 'seed_spreader_lowspeed_btn')
+        self.seed_spreader_lowspeed_btn.clicked.connect(self.set_low_speed)
+        self.seed_spreader_normalspeed_btn = self.findChild(QPushButton, 'seed_spreader_normalspeed_btn')
+        self.seed_spreader_normalspeed_btn.clicked.connect(self.set_middle_speed)
+        self.seed_spreader_highspeed_btn = self.findChild(QPushButton, 'seed_spreader_highspeed_btn')
+        self.seed_spreader_highspeed_btn.clicked.connect(self.set_high_speed)
+
     # ------ SendCmd -------------------------------------
     def sendCmd(self):
         self.myunitree_go1.sendCmd()
@@ -226,7 +339,6 @@ class MyWindow(QMainWindow):
         self.data_mode = self.myunitree_go1.hstate_mode
         self.data_gaitType = self.myunitree_go1.hstate_gaitType
         self.data_velocity = self.myunitree_go1.hstate_velocity
-        # self.data_position_hstate = self.myunitree_go1.hstate_position
 
         self.update_label()
 
@@ -234,9 +346,11 @@ class MyWindow(QMainWindow):
     def vel_0_value_changed(self, value):
         self.velocity_0_Front_value = value
         self.velocity_0_Back_value = -value
+
     def vel_1_value_changed(self, value):
         self.velocity_1_Left_value = value
         self.velocity_1_Right_value = -value
+
     def yawspeed_value_changed(self, value):
         self.yawspeed_value_L = value
         self.yawspeed_value_R = -value
@@ -245,18 +359,23 @@ class MyWindow(QMainWindow):
     def Click_Stop_Btn(self):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Robot_force_Stop()
+
     def Click_UP_Btn(self):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Change_Mode_to_STAND_UP()
+
     def Click_Down_Btn(self):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Change_Mode_to_STAND_DOWN()
+
     def Click_Damping_Btn(self):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Change_Mode_to_Damping()
+
     def Click_Recovery_Btn(self):
         if self.myunitree_go1.connect_flag:
             self.myunitree_go1.Change_Mode_to_Recovery_Stand()
+
     def set_key(self, key, value, button, style):
         self.pressed_keys[key] = value
         button.setStyleSheet(style if value else "background-color: rgb(255, 255, 255);")
@@ -363,7 +482,7 @@ class MyWindow(QMainWindow):
     def udp_connect(self):
         try:
             self.myunitree_go1.connect()
-            h1 = Tread1(self)
+            h1 = MainTread(self)
             h1.start()
         except Exception as e:
             print("udp_connect에서 예외 발생:")
@@ -372,7 +491,7 @@ class MyWindow(QMainWindow):
     def udp_disconnect(self):
         try:
             self.myunitree_go1.disconnect()
-            h1 = Tread1(self)
+            h1 = MainTread(self)
             h1.start()
         except Exception as e:
             print("udp_disconnect에서 예외 발생:")
@@ -414,7 +533,6 @@ class MyWindow(QMainWindow):
         self.slam_canvas.draw()
 
     def detect_obstacles(self, scan):
-        # 거리 500mm 이하의 측정값 필터링
         close_points = np.array([(meas[1], meas[2]) for meas in scan if meas[2] < 500])
 
         if close_points.size == 0:
@@ -446,7 +564,6 @@ class MyWindow(QMainWindow):
         angles = close_points[:, 0]
         distances = close_points[:, 1]
 
-        # 클러스터링 알고리즘 적용
         clusters = []
         current_cluster = [close_points[0]]
 
@@ -577,12 +694,64 @@ class MyWindow(QMainWindow):
         self.lidar.disconnect()
         super().closeEvent(event)
 
+    def start_servo(self):
+        """
+        서보 모터를 시작하는 메서드.
+        """
+        send_command('open')
+        # print("Seed spreader is << OPENED >>")
+
+    def stop_servo(self):
+        """
+        서보 모터를 중지하는 메서드.
+        """
+        send_command('close')
+        # print("Seed spreader is << CLOSED >>")
+
+    def dc_motor_on(self):
+        """
+        DC 모터를 켜는 메서드.
+        """
+        send_command('on')
+        # print("Seed spreader is << ON >>")
+
+    def dc_motor_off(self):
+        """
+        DC 모터를 끄는 메서드.
+        """
+        send_command('off')
+        # print("Seed spreader is << OFF >>")
+
+    def set_low_speed(self):
+        """
+        DC 모터를 저속으로 설정하는 메서드.
+        """
+        send_command('low')
+        # print("Seed spreader is << LOW SPEED >>")
+
+    def set_middle_speed(self):
+        """
+        DC 모터를 중속으로 설정하는 메서드.
+        """
+        send_command('mid')
+        # print("Seed spreader is << MIDDLE SPEED >>")
+
+    def set_high_speed(self):
+        """
+        DC 모터를 고속으로 설정하는 메서드.
+        """
+        send_command('high')
+        # print("Seed spreader is << HIGH SPEED >>")
+
+    def update_gps_data(self, lat, lon):
+        self.add_marker(lat, lon)
+        self.latitude_label.setText(f"{lat:.3f}")
+        self.longitude_label.setText(f"{lon:.3f}")
+
     def load_map(self):
         html_content = self.get_map_html()
         with open('map.html', 'w') as f:
             f.write(html_content)
-
-        # 로컬 서버에서 파일을 서빙
         self.map_view.setUrl(QUrl(f"http://localhost:8001/map.html"))
 
     def get_map_html(self):
@@ -605,10 +774,11 @@ class MyWindow(QMainWindow):
                 let map;
                 let polyline;
                 let path = [];
+                let currentMarker;
 
                 function initMap() {{
                     map = new google.maps.Map(document.getElementById('map'), {{
-                        center: {{lat: 0, lng: 0}},  // 초기 중심을 위도 0, 경도 0으로 설정
+                        center: {{lat: 0, lng: 0}},
                         zoom: 2
                     }});
 
@@ -624,13 +794,19 @@ class MyWindow(QMainWindow):
 
                 function addMarker(lat, lng) {{
                     var position = new google.maps.LatLng(lat, lng);
-                    var marker = new google.maps.Marker({{
+
+                    if (currentMarker) {{
+                        currentMarker.setMap(null);
+                    }}
+
+                    currentMarker = new google.maps.Marker({{
                         position: position,
                         map: map
                     }});
+
                     path.push(position);
                     polyline.setPath(path);
-                    map.setCenter(position);  // 중심을 새 마커 위치로 이동
+                    map.setCenter(position);
                 }}
             </script>
         </head>
@@ -642,75 +818,30 @@ class MyWindow(QMainWindow):
         """
 
     @pyqtSlot()
-    def read_gps_data(self):
-        try:
-            line = self.ser.readline().decode('utf-8')
-            if line.startswith('$GPGGA'):
-                msg = pynmea2.parse(line)
-                lat = msg.latitude
-                lon = msg.longitude
-                if msg.lat_dir == 'S':
-                    lat = -lat
-                if msg.lon_dir == 'W':
-                    lon = -lon
-                self.add_marker(lat, lon)
-                self.latitude_label.setText(f"{lat}")
-                self.longitude_label.setText(f"{lon}")
-
-                # 항상 기록하는 CSV 파일에 저장
-                self.save_to_csv(lat, lon, 'gps_data_always.csv')
-
-                # 시작/정지 버튼을 통해 기록하는 CSV 파일에 저장
-                if self.is_logging:
-                    self.save_to_csv(lat, lon, 'gps_data_logging.csv')
-        except serial.SerialException as e:
-            self.map_status_label.setText(f"시리얼 통신 오류: {str(e)}")
-        except pynmea2.nmea.ParseError as e:
-            self.map_status_label.setText(f"NMEA 데이터 파싱 실패: {str(e)}")
-        except Exception as e:
-            self.map_status_label.setText(f"예상치 못한 오류 발생: {str(e)}")
-
     def add_marker(self, lat, lon):
         self.execute_js(f"addMarker({lat}, {lon});")
 
     def execute_js(self, script):
         self.map_view.page().runJavaScript(script)
 
-    def init_csv(self):
-        # 항상 기록하는 CSV 파일 초기화
-        with open('gps_data_always.csv', 'w', newline='') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(['Latitude', 'Longitude'])
-
-        # 시작/정지 버튼을 통해 기록하는 CSV 파일 초기화
-        with open('gps_data_logging.csv', 'w', newline='') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(['Latitude', 'Longitude'])
-
-    def save_to_csv(self, lat, lon, filename):
-        # 지정된 CSV 파일에 GPS 데이터 저장
-        with open(filename, 'a', newline='') as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow([lat, lon])
-
     def start_logging(self):
-        self.is_logging = True
+        self.gps_thread.start_logging()
         self.map_status_label.setText("데이터 기록 시작")
 
     def stop_logging(self):
-        self.is_logging = False
+        self.gps_thread.stop_logging()
         self.map_status_label.setText("데이터 기록 정지")
 
     def update_logging_interval(self):
-        # 위치 기록 주기 업데이트
-        interval = self.input_map_period.value() * 1000  # 밀리초 단위로 변환
-        self.timer.setInterval(interval)
+        interval = self.input_map_period.value() * 1000
+        self.gps_thread.set_logging_interval(interval)
+
 
 if __name__ == '__main__':
-    # 로컬 서버 실행
     def run_local_server():
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
         subprocess.run(['python3', '-m', 'http.server', '8001'])
+
 
     server_thread = threading.Thread(target=run_local_server)
     server_thread.daemon = True

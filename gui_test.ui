@@ -1066,7 +1066,7 @@ QPushButton:pressed {
        <string/>
       </property>
      </widget>
-     <widget class="QPushButton" name="seed_spreader_highpeed_btn">
+     <widget class="QPushButton" name="seed_spreader_highspeed_btn">
       <property name="geometry">
        <rect>
         <x>140</x>
